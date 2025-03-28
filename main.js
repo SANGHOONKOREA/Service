@@ -255,7 +255,7 @@ function showSection(sec){
           bar.style.top = topPos + "px";
           bar.style.width = width + "px";
           bar.style.backgroundColor = c;
-          bar.textContent = userObj.id + " (" + (userObj.company || "업체 미지정") + ")";
+          bar.textContent = userObj.id + " (" + (userObj.company || "업체 미지정") + ") - Ship: " + (sch.lineName || "");
           bar.onclick = (e) => { e.stopPropagation(); openModal(sch.id); };
           document.getElementById("monthOverlay").appendChild(bar);
           barCount++;
