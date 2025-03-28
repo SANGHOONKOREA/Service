@@ -182,92 +182,218 @@ function showSection(sec){
     /****************************************
      9) 월간 달력
     *****************************************/
-    function drawMonthCalendar(){
-      const year = currentMonthDate.getFullYear();
-      const month = currentMonthDate.getMonth();
-      document.getElementById("monthLabel").textContent = `${year}년 ${month+1}월`;
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month+1, 0);
-      const firstDow = firstDay.getDay();
-      const lastDate = lastDay.getDate();
-      const monthBody = document.getElementById("monthBody");
-      monthBody.innerHTML = "";
-      let row = document.createElement("tr");
-      for(let i = 0; i < firstDow; i++){ row.appendChild(document.createElement("td")); }
-      for(let d = 1; d <= lastDate; d++){
-        const td = document.createElement("td");
-        td.innerHTML = `<span class="day-number">${d}</span>`;
-        const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-        td.onclick = () => openModal(null, dateStr);
-        row.appendChild(td);
-        if((firstDow+d) % 7 === 0){ monthBody.appendChild(row); row = document.createElement("tr"); }
+function drawMonthCalendar(){
+  const year = currentMonthDate.getFullYear();
+  const month = currentMonthDate.getMonth();
+  document.getElementById("monthLabel").textContent = `${year}년 ${month+1}월`;
+
+  // 1) 이번 달 정보
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month+1, 0);
+  const firstDow = firstDay.getDay();   // 이번 달 1일의 요일(0=일,1=월,...)
+  const lastDate = lastDay.getDate();   // 이번 달 마지막 날짜
+
+  // 2) 이전 달 정보 (이전 달의 마지막 날짜 등)
+  const prevMonth = (month === 0) ? 11 : (month - 1);
+  const prevYear = (month === 0) ? (year - 1) : year;
+  const prevLastDate = new Date(prevYear, prevMonth + 1, 0).getDate();
+
+  // 3) 달력 테이블 초기화
+  const monthBody = document.getElementById("monthBody");
+  monthBody.innerHTML = "";
+  let row = document.createElement("tr");
+
+  // 4) 첫 행: 이전 달 날짜 채우기
+  //    firstDow만큼 빈 칸이 있었는데, 그 자리에 이전 달 말일들을 넣음
+  for(let i = 0; i < firstDow; i++){
+    // 예: 요일이 3(수)라면, i=0~2 총 3칸
+    //     일,월,화가 이전 달 날짜가 됨
+    const pmDay = prevLastDate - (firstDow - (i + 1)); // 역순으로 계산
+    const td = document.createElement("td");
+    td.innerHTML = `<span class="day-number prev-month">${pmDay}</span>`;
+
+    // 필요하다면 이전 달 날짜도 클릭 시 모달 열리도록 처리
+    const pmDateStr = `${prevYear}-${String(prevMonth+1).padStart(2,"0")}-${String(pmDay).padStart(2,"0")}`;
+    td.onclick = () => openModal(null, pmDateStr);
+
+    // 시각적으로 구분하기 위해 흐린색
+    td.style.color = "#aaa";
+    row.appendChild(td);
+  }
+
+  // 5) 이번 달 날짜 채우기
+  for(let d = 1; d <= lastDate; d++){
+    const td = document.createElement("td");
+    td.innerHTML = `<span class="day-number">${d}</span>`;
+    const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+
+    td.onclick = () => openModal(null, dateStr);
+    row.appendChild(td);
+
+    // 한 주(7일) 단위로 줄바꿈
+    if ((firstDow + d) % 7 === 0) {
+      monthBody.appendChild(row);
+      row = document.createElement("tr");
+    }
+  }
+
+  // 6) 마지막 행: 남은 칸에 다음 달 날짜 채우기
+  if(row.children.length > 0){
+    let nextDay = 1;
+    while(row.children.length < 7){
+      const td = document.createElement("td");
+      td.innerHTML = `<span class="day-number next-month">${nextDay}</span>`;
+
+      // 다음 달의 연/월 계산
+      const nmMonth = (month === 11) ? 0 : (month + 1);
+      const nmYear = (month === 11) ? (year + 1) : year;
+      const nmDateStr = `${nmYear}-${String(nmMonth+1).padStart(2,"0")}-${String(nextDay).padStart(2,"0")}`;
+      td.onclick = () => openModal(null, nmDateStr);
+
+      // 역시 흐린색 처리
+      td.style.color = "#aaa";
+      row.appendChild(td);
+      nextDay++;
+    }
+    monthBody.appendChild(row);
+  }
+
+  // 7) 스케줄 바(overlay) 초기화
+  document.getElementById("monthOverlay").innerHTML = "";
+
+  // 8) 각 주(테이블 행) 단위로 스케줄 바 표시
+  const rows = monthBody.querySelectorAll("tr");
+  rows.forEach(r => {
+    const cells = r.querySelectorAll("td");
+    let rowDates = [];
+
+    // 이번 달 / 이전 달 / 다음 달 날짜 구분하여 rowDates에 담기
+    for(let i = 0; i < 7; i++){
+      const daySpan = cells[i]?.querySelector(".day-number");
+      if(!daySpan) {
+        rowDates.push(null);
+        continue;
       }
-      if(row.children.length > 0){
-        while(row.children.length < 7){ row.appendChild(document.createElement("td")); }
-        monthBody.appendChild(row);
+
+      // prev-month / next-month / current-month 구분
+      if(daySpan.classList.contains("prev-month")){
+        // 이전 달
+        const pmDay = parseInt(daySpan.textContent, 10);
+        const dateStr = formatDate(prevYear, (prevMonth + 1), pmDay);
+        rowDates.push(dateStr);
       }
-      document.getElementById("monthOverlay").innerHTML = "";
-      const rows = monthBody.querySelectorAll("tr");
-      rows.forEach(r => {
-        const cells = r.querySelectorAll("td");
-        let rowDates = [];
-        for(let i = 0; i < 7; i++){
-          const daySpan = cells[i]?.querySelector(".day-number");
-          rowDates.push(daySpan ? formatDate(year, month+1, parseInt(daySpan.textContent,10)) : null);
+      else if(daySpan.classList.contains("next-month")){
+        // 다음 달
+        const nmDay = parseInt(daySpan.textContent, 10);
+        const nmMonth = (month === 11) ? 0 : (month + 1);
+        const nmYear = (month === 11) ? (year + 1) : year;
+        const dateStr = formatDate(nmYear, (nmMonth + 1), nmDay);
+        rowDates.push(dateStr);
+      }
+      else {
+        // 이번 달
+        const d = parseInt(daySpan.textContent, 10);
+        rowDates.push(formatDate(year, (month+1), d));
+      }
+    }
+
+    // 현재 행(주)에 해당하는 날짜 구간
+    const validD = rowDates.filter(x => x);
+    if(validD.length < 1) return;
+    const rowStart = validD[0], rowEnd = validD[validD.length - 1];
+
+    // 이 주(행)에 걸쳐있는 스케줄만 추려낸 뒤, 바를 그려준다
+    const weekly = schedules.filter(sch => {
+      if(!canAccessSchedule(sch)) return false;
+      if(document.getElementById("excludeSchedules").checked && (sch.unavailable || sch.status === "cancelled")) return false;
+      return (sch.startDate <= rowEnd && sch.endDate >= rowStart);
+    });
+
+    let barCount = 0;
+    weekly.forEach(sch => {
+      // barStart/barEnd는 현재 행(주)에 맞춰 잘라냄
+      const barStart = (sch.startDate < rowStart) ? rowStart : sch.startDate;
+      const barEnd = (sch.endDate > rowEnd) ? rowEnd : sch.endDate;
+
+      // rowDates 배열에서 시작/끝 인덱스 찾기
+      const startIdx = rowDates.findIndex(d => d && d >= barStart);
+      let endIdx = -1;
+      for(let c = 6; c >= 0; c--){
+        if(rowDates[c] && rowDates[c] <= barEnd){
+          endIdx = c;
+          break;
         }
-        const validD = rowDates.filter(x => x);
-        if(validD.length < 1) return;
-        const rowStart = validD[0], rowEnd = validD[validD.length-1];
-        const weekly = schedules.filter(sch => {
-          if(!canAccessSchedule(sch)) return false;
-          if(document.getElementById("excludeSchedules").checked && (sch.unavailable || sch.status === "cancelled")) return false;
-          return (sch.startDate <= rowEnd && sch.endDate >= rowStart);
-        });
-        let barCount = 0;
-        weekly.forEach(sch => {
-          const barStart = (sch.startDate < rowStart) ? rowStart : sch.startDate;
-          const barEnd = (sch.endDate > rowEnd) ? rowEnd : sch.endDate;
-          const startIdx = rowDates.findIndex(d => d && d >= barStart);
-          let endIdx = -1;
-          for(let c = 6; c >= 0; c--){ if(rowDates[c] && rowDates[c] <= barEnd){ endIdx = c; break; } }
-          if(startIdx < 0 || endIdx < 0) return;
-          const startCell = cells[startIdx], endCell = cells[endIdx];
-          if(!startCell || !endCell) return;
-          const overlayRect = document.getElementById("monthOverlay").getBoundingClientRect();
-          const startRect = startCell.getBoundingClientRect();
-          const endRect = endCell.getBoundingClientRect();
-          const leftPos = startRect.left - overlayRect.left + 2;
-          const rightPos = endRect.right - overlayRect.left - 2;
-          const width = rightPos - leftPos;
-          const topBase = startRect.top - overlayRect.top + 18;
-          const topPos = topBase + (barCount * 18);
-          const userObj = users[sch.userId] || {};
-          const comp = userObj.company || "기타";
-          let c = "#999";
-          if(companyColors[comp]){
-            if(sch.status === "cancelled"){ c = companyColors[comp].cancel || "#f00"; }
-            else if(sch.status === "finalized" || sch.status === "일정 변경 / 최종 확정"){ c = companyColors[comp].final || "#0f0"; }
-            else { c = companyColors[comp].normal || "#999"; }
-          }
-          const bar = document.createElement("div");
-          bar.className = "schedule-bar";
-          bar.style.left = leftPos + "px";
-          bar.style.top = topPos + "px";
-          bar.style.width = width + "px";
-          bar.style.backgroundColor = c;
-          bar.textContent = userObj.id + " (" + (userObj.company || "업체 미지정") + ") - " + (sch.lineName || "");
-          bar.onclick = (e) => { e.stopPropagation(); openModal(sch.id); };
-          document.getElementById("monthOverlay").appendChild(bar);
-          barCount++;
-        });
-        if(barCount > 1){
-          const newH = 50 + (barCount - 1) * 18;
-          r.querySelectorAll("td").forEach(td => { td.style.height = newH + "px"; });
+      }
+      if(startIdx < 0 || endIdx < 0) return;
+
+      const startCell = cells[startIdx], endCell = cells[endIdx];
+      if(!startCell || !endCell) return;
+
+      // 실제 브라우저 상 위치 계산
+      const overlayRect = document.getElementById("monthOverlay").getBoundingClientRect();
+      const startRect = startCell.getBoundingClientRect();
+      const endRect = endCell.getBoundingClientRect();
+      const leftPos = startRect.left - overlayRect.left + 2;
+      const rightPos = endRect.right - overlayRect.left - 2;
+      const width = rightPos - leftPos;
+      const topBase = startRect.top - overlayRect.top + 18;
+      const topPos = topBase + (barCount * 18);
+
+      // 업체별 색상 결정
+      const userObj = users[sch.userId] || {};
+      const comp = userObj.company || "기타";
+      let c = "#999";
+      if(companyColors[comp]){
+        if(sch.status === "cancelled"){
+          c = companyColors[comp].cancel || "#f00";
         }
+        else if(sch.status === "finalized" || sch.status === "일정 변경 / 최종 확정"){
+          c = companyColors[comp].final || "#0f0";
+        }
+        else {
+          c = companyColors[comp].normal || "#999";
+        }
+      }
+
+      // 스케줄 바 생성
+      const bar = document.createElement("div");
+      bar.className = "schedule-bar";
+      bar.style.left = leftPos + "px";
+      bar.style.top = topPos + "px";
+      bar.style.width = width + "px";
+      bar.style.backgroundColor = c;
+      bar.textContent = userObj.id + " (" + (userObj.company || "업체 미지정") + ") - " + (sch.lineName || "");
+
+      bar.onclick = (e) => {
+        e.stopPropagation();
+        openModal(sch.id);
+      };
+      document.getElementById("monthOverlay").appendChild(bar);
+      barCount++;
+    });
+
+    // 스케줄 바가 여러 개 겹치면 셀 높이를 늘려줌
+    if(barCount > 1){
+      const newH = 50 + (barCount - 1) * 18;
+      r.querySelectorAll("td").forEach(td => {
+        td.style.height = newH + "px";
       });
     }
-    function prevMonth(){ currentMonthDate.setMonth(currentMonthDate.getMonth()-1); drawMonthCalendar(); }
-    function nextMonth(){ currentMonthDate.setMonth(currentMonthDate.getMonth()+1); drawMonthCalendar(); }
+  });
+}
+
+// 이전 달로 이동
+function prevMonth(){
+  currentMonthDate.setMonth(currentMonthDate.getMonth() - 1);
+  drawMonthCalendar();
+}
+
+// 다음 달로 이동
+function nextMonth(){
+  currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
+  drawMonthCalendar();
+}
+
 
     /****************************************
      10) 주간 달력
