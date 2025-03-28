@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- 제목 변경 -->
   <title>S&SYS SERVICE MANAGEMENT</title>
-  <link rel="stylesheet" href="style.css?v=1.0.0">
+<link rel="stylesheet" href="style.css?v=1.0.1">
   
   <!-- EmailJS SDK (클라이언트 사이드) -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
@@ -287,38 +287,46 @@
       </div>
 
       <!-- 업체 색상 관리 -->
-      <div id="adminCompanyColorPane" class="admin-pane">
-        <h4>업체 색상 관리</h4>
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>업체명</th>
-              <th>기본(normal)</th>
-              <th>취소(cancel)</th>
-              <th>확정(final)</th>
-              <th>삭제</th>
-            </tr>
-          </thead>
-          <tbody id="companyColorBody"></tbody>
-        </table>
-        <div class="admin-form-row">
-          <label>업체명 선택</label>
-          <select id="selectCompanyName" onchange="onSelectCompanyNameChange()"></select>
-        </div>
-        <div class="admin-form-row">
-          <label>기본(normal) 색상</label>
-          <input type="color" id="inputCompanyColorNormal" value="#999999"/>
-        </div>
-        <div class="admin-form-row">
-          <label>취소(cancel) 색상</label>
-          <input type="color" id="inputCompanyColorCancel" value="#ff0000"/>
-        </div>
-        <div class="admin-form-row">
-          <label>확정(final) 색상</label>
-          <input type="color" id="inputCompanyColorFinal" value="#00ff00"/>
-        </div>
-        <button onclick="saveCompanyColor()">추가/수정</button>
-      </div>
+<div id="adminCompanyColorPane" class="admin-pane">
+  <h4>업체 색상 관리</h4>
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>업체명</th>
+        <th>기본(normal)</th>
+        <th>취소(cancel)</th>
+        <th>확정(final)</th>
+        <th>불가(unavailable)</th>
+        <th>삭제</th>
+      </tr>
+    </thead>
+    <tbody id="companyColorBody"></tbody>
+  </table>
+  <!-- 색상 지정 입력란들: 업체명 선택, 기본/취소/확정/불가 색상 -->
+  <div class="admin-form-row">
+    <label>업체명 선택</label>
+    <select id="selectCompanyName" onchange="onSelectCompanyNameChange()"></select>
+  </div>
+  <div class="admin-form-row">
+    <label>기본(normal) 색상</label>
+    <input type="color" id="inputCompanyColorNormal" value="#999999"/>
+  </div>
+  <div class="admin-form-row">
+    <label>취소(cancel) 색상</label>
+    <input type="color" id="inputCompanyColorCancel" value="#ff0000"/>
+  </div>
+  <div class="admin-form-row">
+    <label>확정(final) 색상</label>
+    <input type="color" id="inputCompanyColorFinal" value="#00ff00"/>
+  </div>
+  <div class="admin-form-row">
+    <label>불가(unavailable) 색상</label>
+    <input type="color" id="inputCompanyColorUnavailable" value="#cccccc"/>
+  </div>
+  <!-- 추가/수정 버튼은 색상 입력란 아래에 위치 -->
+  <button onclick="saveCompanyColor()">추가/수정</button>
+</div>
+
 
       <!-- 변경 히스토리 -->
       <div id="adminHistoryPane" class="admin-pane">
@@ -526,7 +534,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-auth-compat.js"></script>
 
-<script src="main.js?v=1.0.0"></script>
+<script src="main.js?v=1.0.1"></script>
 
 </body>
 </html>
