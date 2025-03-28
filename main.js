@@ -339,21 +339,26 @@ function drawMonthCalendar(){
       const topBase = startRect.top - overlayRect.top + 18;
       const topPos = topBase + (barCount * 18);
 
-      // 업체별 색상 결정
-      const userObj = users[sch.userId] || {};
-      const comp = userObj.company || "기타";
-      let c = "#999";
-      if(companyColors[comp]){
-        if(sch.status === "cancelled"){
-          c = companyColors[comp].cancel || "#f00";
-        }
-        else if(sch.status === "finalized" || sch.status === "일정 변경 / 최종 확정"){
-          c = companyColors[comp].final || "#0f0";
-        }
-        else {
-          c = companyColors[comp].normal || "#999";
-        }
-      }
+// 업체별 색상 결정 로직
+const userObj = users[sch.userId] || {};
+const comp = userObj.company || "기타";
+let c = "#999"; // 기본값
+if (companyColors[comp]) {
+  if (sch.unavailable) {
+    // "서비스 불가 일정"이면 unavailable 색상
+    c = companyColors[comp].unavailable || "#ccc";
+  }
+  else if (sch.status === "cancelled") {
+    c = companyColors[comp].cancel || "#f00";
+  }
+  else if (sch.status === "finalized" || sch.status === "일정 변경 / 최종 확정") {
+    c = companyColors[comp].final || "#0f0";
+  }
+  else {
+    c = companyColors[comp].normal || "#999";
+  }
+}
+
 
       // 스케줄 바 생성
       const bar = document.createElement("div");
@@ -1291,91 +1296,159 @@ function populateStatusUserFilter(){
     /****************************************
      17) 업체 색상 관리
     *****************************************/
-    function drawCompanyColorList(){
-      const tbody = document.getElementById("companyColorBody");
-      tbody.innerHTML = "";
-      const sel = document.getElementById("selectCompanyName");
-      sel.innerHTML = "";
-      let compSet = {};
-      for(const uid in users){ compSet[users[uid].company || "기타"] = true; }
-      for(const cName in companyColors){ compSet[cName] = true; }
-      for(const cName in compSet){
-        const opt = document.createElement("option");
-        opt.value = cName;
-        opt.textContent = cName;
-        sel.appendChild(opt);
-      }
-      for(const cName in companyColors){
-        const cVal = companyColors[cName];
-        const tr = document.createElement("tr");
-        const tdName = document.createElement("td");
-        tdName.textContent = cName;
-        const tdNormal = document.createElement("td");
-        const divN = document.createElement("div");
-        divN.style.width = "30px"; divN.style.height = "15px"; divN.style.margin = "0 auto";
-        divN.style.background = cVal.normal || "#999";
-        tdNormal.appendChild(divN);
-        const tdCancel = document.createElement("td");
-        const divC = document.createElement("div");
-        divC.style.width = "30px"; divC.style.height = "15px"; divC.style.margin = "0 auto";
-        divC.style.background = cVal.cancel || "#f00";
-        tdCancel.appendChild(divC);
-        const tdFinal = document.createElement("td");
-        const divF = document.createElement("div");
-        divF.style.width = "30px"; divF.style.height = "15px"; divF.style.margin = "0 auto";
-        divF.style.background = cVal.final || "#0f0";
-        tdFinal.appendChild(divF);
-        const tdDel = document.createElement("td");
-        const delBtn = document.createElement("button");
-        delBtn.className = "admin-btn";
-        delBtn.textContent = "삭제";
-        delBtn.onclick = () => deleteCompanyColor(cName);
-        tdDel.appendChild(delBtn);
-        tr.appendChild(tdName);
-        tr.appendChild(tdNormal);
-        tr.appendChild(tdCancel);
-        tr.appendChild(tdFinal);
-        tr.appendChild(tdDel);
-        tbody.appendChild(tr);
-      }
-    }
-    function onSelectCompanyNameChange(){
-      const cName = document.getElementById("selectCompanyName").value;
-      if(!cName) return;
-      const rec = companyColors[cName];
-      if(rec){
-        document.getElementById("inputCompanyColorNormal").value = rec.normal || "#999999";
-        document.getElementById("inputCompanyColorCancel").value = rec.cancel || "#ff0000";
-        document.getElementById("inputCompanyColorFinal").value = rec.final || "#00ff00";
-      } else {
-        document.getElementById("inputCompanyColorNormal").value = "#999999";
-        document.getElementById("inputCompanyColorCancel").value = "#ff0000";
-        document.getElementById("inputCompanyColorFinal").value = "#00ff00";
-      }
-    }
-    function saveCompanyColor(){
-      const name = document.getElementById("selectCompanyName").value.trim();
-      if(!name){ alert("업체명을 선택하세요"); return; }
-      const nCol = document.getElementById("inputCompanyColorNormal").value.trim() || "#999999";
-      const cCol = document.getElementById("inputCompanyColorCancel").value.trim() || "#ff0000";
-      const fCol = document.getElementById("inputCompanyColorFinal").value.trim() || "#00ff00";
-      companyColors[name] = { normal: nCol, cancel: cCol, final: fCol };
-      db.ref("companyColors").set(companyColors).then(() => {
-        alert("업체 색상 저장 완료");
-        document.getElementById("inputCompanyColorNormal").value = "#999999";
-        document.getElementById("inputCompanyColorCancel").value = "#ff0000";
-        document.getElementById("inputCompanyColorFinal").value = "#00ff00";
-        loadAllData().then(() => drawCompanyColorList());
-      });
-    }
-    function deleteCompanyColor(cName){
-      if(!confirm(cName + " 색상정보를 삭제하시겠습니까?")) return;
-      delete companyColors[cName];
-      db.ref("companyColors").set(companyColors).then(() => {
-        alert("삭제 완료");
-        loadAllData().then(() => drawCompanyColorList());
-      });
-    }
+/* 업체 색상 관리 테이블 그리기 */
+function drawCompanyColorList(){
+  const tbody = document.getElementById("companyColorBody");
+  tbody.innerHTML = "";
+
+  // 업체명 셀렉트 박스 갱신
+  const sel = document.getElementById("selectCompanyName");
+  sel.innerHTML = "";
+
+  let compSet = {};
+  // users에 있는 모든 company, companyColors에 등록된 모든 company 수집
+  for(const uid in users){
+    compSet[ users[uid].company || "기타" ] = true;
+  }
+  for(const cName in companyColors){
+    compSet[cName] = true;
+  }
+
+  // selectCompanyName에 옵션 추가
+  for(const cName in compSet){
+    const opt = document.createElement("option");
+    opt.value = cName;
+    opt.textContent = cName;
+    sel.appendChild(opt);
+  }
+
+  // 업체별 색상 목록 테이블
+  for(const cName in companyColors){
+    const cVal = companyColors[cName];
+    const tr = document.createElement("tr");
+
+    // 1) 업체명
+    const tdName = document.createElement("td");
+    tdName.textContent = cName;
+    tr.appendChild(tdName);
+
+    // 2) 기본(normal)
+    const tdNormal = document.createElement("td");
+    const divN = document.createElement("div");
+    divN.style.width = "30px"; 
+    divN.style.height = "15px"; 
+    divN.style.margin = "0 auto";
+    divN.style.background = cVal.normal || "#999";
+    tdNormal.appendChild(divN);
+    tr.appendChild(tdNormal);
+
+    // 3) 취소(cancel)
+    const tdCancel = document.createElement("td");
+    const divC = document.createElement("div");
+    divC.style.width = "30px"; 
+    divC.style.height = "15px"; 
+    divC.style.margin = "0 auto";
+    divC.style.background = cVal.cancel || "#f00";
+    tdCancel.appendChild(divC);
+    tr.appendChild(tdCancel);
+
+    // 4) 확정(final)
+    const tdFinal = document.createElement("td");
+    const divF = document.createElement("div");
+    divF.style.width = "30px"; 
+    divF.style.height = "15px"; 
+    divF.style.margin = "0 auto";
+    divF.style.background = cVal.final || "#0f0";
+    tdFinal.appendChild(divF);
+    tr.appendChild(tdFinal);
+
+    // 5) 불가(unavailable)
+    const tdUnavail = document.createElement("td");
+    const divU = document.createElement("div");
+    divU.style.width = "30px";
+    divU.style.height = "15px";
+    divU.style.margin = "0 auto";
+    // 등록된 값이 없으면 #ccc 기본값 사용
+    divU.style.background = cVal.unavailable || "#ccc";
+    tdUnavail.appendChild(divU);
+    tr.appendChild(tdUnavail);
+
+    // 6) 삭제 버튼
+    const tdDel = document.createElement("td");
+    const delBtn = document.createElement("button");
+    delBtn.className = "admin-btn";
+    delBtn.textContent = "삭제";
+    delBtn.onclick = () => deleteCompanyColor(cName);
+    tdDel.appendChild(delBtn);
+    tr.appendChild(tdDel);
+
+    tbody.appendChild(tr);
+  }
+}
+
+/* select 박스에서 업체 선택 시, 기존 색상 불러오기 */
+function onSelectCompanyNameChange(){
+  const cName = document.getElementById("selectCompanyName").value;
+  if(!cName) return;
+  const rec = companyColors[cName];
+  if(rec){
+    document.getElementById("inputCompanyColorNormal").value      = rec.normal      || "#999999";
+    document.getElementById("inputCompanyColorCancel").value      = rec.cancel      || "#ff0000";
+    document.getElementById("inputCompanyColorFinal").value       = rec.final       || "#00ff00";
+    document.getElementById("inputCompanyColorUnavailable").value = rec.unavailable || "#cccccc";
+  } else {
+    // 새 업체면 기본값 세팅
+    document.getElementById("inputCompanyColorNormal").value      = "#999999";
+    document.getElementById("inputCompanyColorCancel").value      = "#ff0000";
+    document.getElementById("inputCompanyColorFinal").value       = "#00ff00";
+    document.getElementById("inputCompanyColorUnavailable").value = "#cccccc";
+  }
+}
+
+/* 업체 색상 추가/수정 */
+function saveCompanyColor(){
+  const name = document.getElementById("selectCompanyName").value.trim();
+  if(!name){ 
+    alert("업체명을 선택하세요");
+    return;
+  }
+  const nCol = document.getElementById("inputCompanyColorNormal").value.trim()      || "#999999";
+  const cCol = document.getElementById("inputCompanyColorCancel").value.trim()      || "#ff0000";
+  const fCol = document.getElementById("inputCompanyColorFinal").value.trim()       || "#00ff00";
+  const uCol = document.getElementById("inputCompanyColorUnavailable").value.trim() || "#cccccc";
+
+  // companyColors 구조에 unavailable 필드 추가
+  companyColors[name] = {
+    normal: nCol,
+    cancel: cCol,
+    final: fCol,
+    unavailable: uCol
+  };
+
+  db.ref("companyColors").set(companyColors)
+    .then(() => {
+      alert("업체 색상 저장 완료");
+      // 저장 후 기본값 리셋
+      document.getElementById("inputCompanyColorNormal").value      = "#999999";
+      document.getElementById("inputCompanyColorCancel").value      = "#ff0000";
+      document.getElementById("inputCompanyColorFinal").value       = "#00ff00";
+      document.getElementById("inputCompanyColorUnavailable").value = "#cccccc";
+      // 테이블 다시 그리기
+      loadAllData().then(() => drawCompanyColorList());
+    });
+}
+
+/* 업체 색상 삭제 */
+function deleteCompanyColor(cName){
+  if(!confirm(cName + " 색상정보를 삭제하시겠습니까?")) return;
+  delete companyColors[cName];
+  db.ref("companyColors").set(companyColors)
+    .then(() => {
+      alert("삭제 완료");
+      loadAllData().then(() => drawCompanyColorList());
+    });
+}
+
 
     /****************************************
      18) 엑셀 업/다운로드 (스케줄 목록)
