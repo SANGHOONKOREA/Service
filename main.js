@@ -1,4 +1,5 @@
 
+
     /****************************************
      1) Firebase 초기화
     *****************************************/
@@ -34,7 +35,41 @@
     /****************************************
      3) 페이지 로드 시 초기 작업
     *****************************************/
-    window.onload = () => { checkAutoLogin(); };
+window.onload = () => { 
+  checkAutoLogin();
+  // localStorage에서 최종 모드 확인 (기본은 모바일)
+  const mode = localStorage.getItem("displayMode") || "mobile";
+  const body = document.body;
+  const btn = document.getElementById("toggleVersionButton");
+  if (mode === "pc") {
+    body.classList.add("pc-version");
+    if(btn) btn.textContent = "모바일 버전";
+  } else {
+    body.classList.remove("pc-version");
+    if(btn) btn.textContent = "PC 버전";
+  }
+};
+
+// PC/모바일 토글 기능
+function toggleVersion() {
+  const body = document.body;
+  const btn = document.getElementById("toggleVersionButton");
+  if (body.classList.contains("pc-version")) {
+    // PC 모드 -> 모바일 모드 전환
+    body.classList.remove("pc-version");
+    btn.textContent = "PC 버전";
+    localStorage.setItem("displayMode", "mobile");
+  } else {
+    // 모바일 모드 -> PC 모드 전환 (폭을 2배로 확장)
+    body.classList.add("pc-version");
+    btn.textContent = "모바일 버전";
+    localStorage.setItem("displayMode", "pc");
+  }
+  // 모드 전환 후 달력 재렌더링으로 일정바 위치 및 크기 갱신
+  refreshCalendar();
+}
+
+
 
     /****************************************
      4) Firebase Auth 상태 변화 감지
