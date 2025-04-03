@@ -350,3 +350,211 @@ section.active { display: block; }
 .pc-version #container {
   max-width: 960px;
 }
+
+#monthCompanyFilter, #weekCompanyFilter {
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+#adminAccessHistoryPane {
+
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 4px;
+  background: #fafafa;
+  margin-bottom: 10px;
+}
+
+#adminAccessHistoryPane.active {
+  display: block;
+}
+
+#adminAccessHistoryPane h4 {
+  margin-top: 0;
+  font-size: 0.9em;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+  color: #2c3e50;
+}
+
+#adminAccessHistoryBody tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+#adminAccessHistoryBody tr:hover {
+  background-color: #e9e9e9;
+}
+
+/* ------------------------------
+       11) 히스토리 테이블 스타일 (좌우 스크롤 적용)
+    ------------------------------*/
+/* 히스토리 테이블 컨테이너 스타일 */
+#adminHistoryPane, #statusHistoryPane {
+  overflow-x: auto; /* 가로 스크롤 추가 */
+  max-width: 100%; /* 컨테이너 최대 폭 제한 */
+  padding-bottom: 12px; /* 스크롤바 여유 공간 */
+}
+
+/* 히스토리 테이블 스타일 */
+#adminHistoryPane table, #statusHistoryPane table {
+  min-width: 1500px; /* 더 넓게 설정하여 충분한 스크롤 영역 확보 */
+  table-layout: fixed; /* 고정 테이블 레이아웃 */
+  width: auto; /* 테이블 너비 자동 설정 */
+  margin-bottom: 15px; /* 아래 여백 */
+}
+
+/* 테이블 헤더 고정 스타일 */
+#adminHistoryPane thead, #statusHistoryPane thead {
+  position: sticky;
+  top: 0;
+  background-color: #f2f2f2;
+  z-index: 1;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+}
+
+/* 테이블 셀 스타일 */
+#adminHistoryPane th, #adminHistoryPane td,
+#statusHistoryPane th, #statusHistoryPane td {
+  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+  overflow: hidden; /* 넘치는 텍스트 숨김 */
+  text-overflow: ellipsis; /* 넘치는 텍스트는 ...으로 표시 */
+  padding: 6px 8px; /* 셀 내부 여백 */
+  min-width: 100px; /* 최소 너비 */
+  max-width: 150px; /* 최대 너비 */
+}
+
+/* 더 좁은 셀: 시간, 구분 등 */
+#adminHistoryPane th:first-child, #adminHistoryPane td:first-child,
+#statusHistoryPane th:first-child, #statusHistoryPane td:first-child {
+  width: 90px;
+  min-width: 90px;
+  max-width: 90px;
+}
+
+/* 더 넓은 셀: 상세 내용 등 */
+#adminHistoryPane th:nth-child(8), #adminHistoryPane td:nth-child(8),
+#statusHistoryPane th:nth-child(8), #statusHistoryPane td:nth-child(8) {
+  min-width: 120px; /* 업체명 */
+}
+
+/* 짝수/홀수 행 구분 */
+#adminHistoryPane tbody tr:nth-child(even),
+#statusHistoryPane tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+#adminHistoryPane tbody tr:hover,
+#statusHistoryPane tbody tr:hover {
+  background-color: #f0f7ff;
+}
+
+/* 변경 내용 강조 표시 */
+#adminHistoryPane td[data-changed="true"],
+#statusHistoryPane td[data-changed="true"] {
+  background-color: #fffacd; /* 연한 노란색 */
+  font-weight: bold;
+}
+
+/* 긴 텍스트를 가진 셀에 마우스 오버 시 툴팁 효과 */
+#adminHistoryPane td, #statusHistoryPane td {
+  position: relative;
+}
+
+#adminHistoryPane td:hover::after, 
+#statusHistoryPane td:hover::after {
+  content: attr(title);
+  position: absolute;
+  left: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 5px 8px;
+  white-space: normal;
+  max-width: 300px;
+  z-index: 10;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+  word-break: break-word;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #333;
+}
+
+/* 히스토리 제목 영역 */
+#adminHistoryPane h4, #statusHistoryPane h4 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* 히스토리 필터 영역 */
+.history-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.history-filters select, 
+.history-filters input {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.history-filters button {
+  background: #2c3e50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+/* 스크롤바 스타일 커스텀 (옵션) */
+#adminHistoryPane::-webkit-scrollbar, 
+#statusHistoryPane::-webkit-scrollbar {
+  height: 8px;
+  background-color: #f1f1f1;
+}
+
+#adminHistoryPane::-webkit-scrollbar-thumb, 
+#statusHistoryPane::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 4px;
+}
+
+#adminHistoryPane::-webkit-scrollbar-thumb:hover, 
+#statusHistoryPane::-webkit-scrollbar-thumb:hover {
+  background-color: #666;
+}
+
+/* 엑셀 다운로드 버튼 개선 */
+.excel-download-btn {
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.85em;
+  cursor: pointer;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.excel-download-btn:hover {
+  background: #219653;
+}
+
+.excel-download-btn::before {
+  content: "📥";
+  font-size: 1.1em;
+}
