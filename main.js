@@ -70,6 +70,9 @@ function toggleVersion() {
 /****************************************
  4) Firebase Auth 상태 변화 감지
 *****************************************/
+/****************************************
+ 4) Firebase Auth 상태 변화 감지
+*****************************************/
 auth.onAuthStateChanged(user => {
   if (user) {
     currentUid = user.uid;
@@ -91,7 +94,11 @@ auth.onAuthStateChanged(user => {
           document.getElementById("btnAdmin").style.display = (currentUser.role === "관리자") ? "inline-block" : "none";
           // 본사 권한이면 현황 버튼 표시
           document.getElementById("btnStatus").style.display = (currentUser.role === "본사") ? "inline-block" : "none";
-          loadAllData().then(() => { showSection("monthly"); });
+          loadAllData().then(() => { 
+            showSection("monthly"); 
+            // 권한에 따라 필터 표시 제어
+            updateFilterVisibility();
+          });
         }
       })
       .catch(err => { console.error(err); });
@@ -100,6 +107,22 @@ auth.onAuthStateChanged(user => {
     document.getElementById("main-menu").style.display = "none";
   }
 });
+
+// 권한에 따라 필터 표시 여부를 제어하는 함수
+function updateFilterVisibility() {
+  const monthCompanyFilterContainer = document.getElementById("monthCompanyFilterContainer");
+  const weekCompanyFilterContainer = document.getElementById("weekCompanyFilterContainer");
+  
+  if (currentUser && currentUser.role === "협력") {
+    // 협력 권한인 경우 필터 숨김
+    monthCompanyFilterContainer.style.display = "none";
+    weekCompanyFilterContainer.style.display = "none";
+  } else {
+    // 관리자, 본사 권한 등의 경우 필터 표시
+    monthCompanyFilterContainer.style.display = "flex";
+    weekCompanyFilterContainer.style.display = "flex";
+  }
+}
 function checkAutoLogin(){
   // 자동 로그인 로직 (필요 시 구현)
 }
@@ -182,6 +205,9 @@ function showSection(sec){
   
   // 필터 옵션 최신화
   populateCompanyFilters();
+  
+  // 권한에 따라 필터 표시 제어
+  updateFilterVisibility();
   
   if(sec === "monthly"){
     document.getElementById("monthlySection").classList.add("active");
