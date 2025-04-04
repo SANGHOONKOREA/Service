@@ -707,8 +707,10 @@ if (scheduleId) {
   document.getElementById("modalETD").value = sch.etd || "";
 
     // 본사 담당자
-    buildManagerSelectOptions(document.getElementById("modalManagerSelect"), sch.managerId);
-
+  buildManagerSelectOptions(document.getElementById("modalManagerSelect"), sch.managerId);
+  // 중요: 원래 담당자 값 저장 (항상 먼저 저장)
+  document.getElementById("modalManagerSelect").setAttribute('data-original-value', sch.managerId || '');
+  
     // 상태 표시
   if (sch.unavailable) {
     document.getElementById("scheduleStatusLabel").textContent = "서비스 불가";
@@ -787,39 +789,52 @@ if (scheduleId) {
   toggleManagerField();
 }
 // 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
+// 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
+// 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
 function toggleManagerField() {
   const isUnavailable = document.getElementById("modalUnavailable").checked;
   const managerSelect = document.getElementById("modalManagerSelect");
-  const managerRow = document.getElementById("modalManagerRow");
+  
+  // 초기 로드 시 현재 선택된 값 저장
+  if (!managerSelect.hasAttribute('data-original-value')) {
+    managerSelect.setAttribute('data-original-value', managerSelect.value);
+  }
   
   if (isUnavailable) {
     // 서비스 불가 체크됨: 본사 담당자 비활성화 및 "미해당" 표시
     managerSelect.disabled = true;
+    managerSelect.style.backgroundColor = '#f0f0f0';
+    managerSelect.style.color = '#999';
     
-    // 기존 선택값 저장 (해제 시 복원을 위해)
-    managerSelect.setAttribute('data-prev-value', managerSelect.value);
+    // 기존 선택된 옵션 기억
+    const originalValue = managerSelect.getAttribute('data-original-value');
+    
+    // 임시 저장
+    const currentOptions = [];
+    for (let i = 0; i < managerSelect.options.length; i++) {
+      currentOptions.push({
+        value: managerSelect.options[i].value,
+        text: managerSelect.options[i].textContent
+      });
+    }
     
     // 옵션 초기화 후 "미해당" 옵션만 추가
     managerSelect.innerHTML = '';
     const unavailableOption = document.createElement('option');
-    unavailableOption.value = '';
+    unavailableOption.value = originalValue || ''; // 원래 값 유지
     unavailableOption.textContent = '미해당';
     managerSelect.appendChild(unavailableOption);
-    
-    // 스타일 변경 - 회색 배경으로 비활성화 표시 강화
-    managerSelect.style.backgroundColor = '#f0f0f0';
-    managerSelect.style.color = '#999';
   } else {
     // 서비스 불가 체크 해제됨: 본사 담당자 활성화 및 옵션 복원
     managerSelect.disabled = false;
     managerSelect.style.backgroundColor = '';
     managerSelect.style.color = '';
     
-    // 이전에 저장된 선택값 가져오기
-    const prevValue = managerSelect.getAttribute('data-prev-value') || '';
+    // 원래 값으로 복원
+    const originalValue = managerSelect.getAttribute('data-original-value') || '';
     
-    // 본사 담당자 옵션 다시 빌드
-    buildManagerSelectOptions(managerSelect, prevValue);
+    // 옵션 다시 빌드
+    buildManagerSelectOptions(managerSelect, originalValue);
   }
 }
 function updateEngineerLists() {
@@ -1054,8 +1069,10 @@ function saveSchedule(){
   const extraContainer = document.getElementById("additionalEngineerRows");
   const extraSelects = extraContainer.querySelectorAll("select");
   
-  // 서비스 불가 체크되었으면 managerId는 빈 값 사용, 아니면 선택된 값 사용
-  const managerId = isUnavailable ? "" : document.getElementById("modalManagerSelect").value;
+// saveSchedule() 함수 내의 managerId 처리 부분
+const managerId = isUnavailable ? 
+  '' : // 서비스 불가인 경우 빈 값으로 처리
+  document.getElementById("modalManagerSelect").value;
   
   if(editingScheduleId){
     var finalizeAnswer = confirm("일정변경 후에 최종 확정 할까요?");
