@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -6,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- 제목 변경 -->
   <title>S&SYS SERVICE MANAGEMENT</title>
-<link rel="stylesheet" href="style.css?v=1.0.2">
+<link rel="stylesheet" href="style.css?v=1.0.1">
   
   <!-- EmailJS SDK (클라이언트 사이드) -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
@@ -163,14 +162,17 @@
             <th>엔지니어</th>
             <th>기간</th>
             <th>Ship Name</th>
-            <th>IMO No.</th>
-            <th>Hull No.</th>
+            <th>IMO 번호</th>
+            <th>Hull 번호</th>
             <th>지역</th>
             <th>담당자</th>
             <th>상세</th>
             <th style="text-align:left;">서비스 불가 일정</th>
+            <th>수정</th>
+            <th>삭제</th>
           </tr>
         </thead>
+        <!-- 상태 섹션에서는 tbody의 id를 statusScheduleListBody 로 변경 -->
         <tbody id="statusScheduleListBody"></tbody>
       </table>
     </div>
@@ -178,92 +180,94 @@
       <button onclick="downloadExcel()">엑셀 다운로드</button>
     </div>
   </div>
-<!-- 본사 현황 페이지의 변경 히스토리 섹션 -->
-<div id="statusHistoryPane" class="status-pane" style="display:none;">
-  <button onclick="downloadHistoryExcel()" class="excel-download-btn">히스토리 엑셀 다운로드</button>
+  <!-- 변경 히스토리 판 (읽기 전용, 엑셀 다운로드) -->
+  <div id="statusHistoryPane" class="status-pane" style="display:none;">
+    <button onclick="downloadHistoryExcel()" class="excel-download-btn">히스토리 엑셀 다운로드</button>
   
-  <!-- 히스토리 테이블 컨테이너 -->
-  <div class="history-table-container">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th style="width:80px;">시간</th>
-          <th>사용자</th>
-          <th>변경 전 시작일</th>
-          <th>변경 전 종료일</th>
-          <th>변경 후 시작일</th>
-          <th>변경 후 종료일</th>
-          <th>구분</th>
-          <th>업체</th>
-          <th>엔지니어</th>
-          <th>변경 전 Ship Name</th>
-          <th>변경 후 Ship Name</th>
-          <th>변경 전 IMO No.</th>
-          <th>변경 후 IMO No.</th>
-          <th>변경 전 Hull No.</th>
-          <th>변경 후 Hull No.</th>
-          <th>변경 전 지역</th>
-          <th>변경 후 지역</th>
-          <th>담당자</th>
-        </tr>
-      </thead>
-      <tbody id="statusHistoryBody"></tbody>
-    </table>
+    <!-- 히스토리 테이블 컨테이너 -->
+    <div class="history-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th style="width:80px;">시간</th>
+            <th>사용자</th>
+            <th>변경 전 시작일</th>
+            <th>변경 전 종료일</th>
+            <th>변경 후 시작일</th>
+            <th>변경 후 종료일</th>
+            <th>구분</th>
+            <th>업체</th>
+            <th>엔지니어</th>
+            <th>변경 전 Ship Name</th>
+            <th>변경 후 Ship Name</th>
+            <th>변경 전 IMO No.</th>
+            <th>변경 후 IMO No.</th>
+            <th>변경 전 Hull No.</th>
+            <th>변경 후 Hull No.</th>
+            <th>변경 전 지역</th>
+            <th>변경 후 지역</th>
+            <th>담당자</th>
+          </tr>
+        </thead>
+        <tbody id="statusHistoryBody"></tbody>
+      </table>
+    </div>
   </div>
-</div>
 </section>
 
 
 
 
     <!-- (F) 관리자 페이지 -->
-    <section id="adminSection">
-<div class="admin-menu">
-  <button onclick="showAdminPane('userList')">유저 목록</button>
-  <button onclick="showAdminPane('userRegister')">유저 등록</button>
-  <button onclick="showAdminPane('scheduleList')">스케줄 목록</button>
-  <button onclick="showAdminPane('companyColor')">업체 색상 관리</button>
-  <button onclick="showAdminPane('history')">변경 히스토리</button>
-  <button onclick="showAdminPane('accessHistory')">접속 현황</button>
-</div>
+<section id="adminSection">
+  <div class="admin-menu">
+    <button onclick="showAdminPane('userList')">유저 목록</button>
+    <button onclick="showAdminPane('userRegister')">유저 등록</button>
+    <button onclick="showAdminPane('scheduleList')">스케줄 목록</button>
+    <button onclick="showAdminPane('companyColor')">업체 색상 관리</button>
+    <button onclick="showAdminPane('history')">변경 히스토리</button>
+    <button onclick="showAdminPane('accessHistory')">접속 현황</button>
+  </div>
 
-      <!-- 관리자 스케줄 목록 (좌우 스크롤 적용) -->
-      <div id="adminScheduleListPane" class="admin-pane">
-        <h4>스케줄 목록</h4>
-        <div style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
-          <label>조회 시작일</label>
-          <input type="date" id="adminQueryStart">
-          <label>조회 종료일</label>
-          <input type="date" id="adminQueryEnd">
-          <button onclick="drawScheduleList()">조회</button>
-        </div>
-        <div class="schedule-list-container">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>업체</th>
-                <th>엔지니어</th>
-                <th>기간</th>
-                <th>Ship Name</th>
-                <th>IMO No.</th>
-                <th>Hull No.</th>
-                <th>지역</th>
-                <th>담당자</th>
-                <th>상세</th>
-                <th style="text-align:left;">서비스 불가 일정</th>
-                <th>수정</th>
-                <th>삭제</th>
-              </tr>
-            </thead>
-            <tbody id="adminScheduleListBody"></tbody>
-          </table>
-        </div>
-        <div style="margin-top:12px;">
-          <button onclick="downloadExcel()">엑셀 다운로드</button>
-          <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none" onchange="uploadExcel(event)"/>
-          <button onclick="document.getElementById('excelFileInput').click()">엑셀 업로드</button>
-        </div>
-      </div>
+      <!-- 관리자 스케줄 목록 (좌우 스크롤 적용) -->  
+<div id="adminScheduleListPane" class="admin-pane">
+    <h4>스케줄 목록</h4>
+    <div style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
+      <label>조회 시작일</label>
+      <input type="date" id="adminQueryStart">
+      <label>조회 종료일</label>
+      <input type="date" id="adminQueryEnd">
+      <button onclick="drawScheduleList()">조회</button>
+    </div>
+    <div class="schedule-list-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>업체</th>
+            <th>엔지니어</th>
+            <th>기간</th>
+            <th>Ship Name</th>
+            <th>IMO 번호</th>
+            <th>Hull 번호</th>
+            <th>지역</th>
+            <th>담당자</th>
+            <th>상세</th>
+            <th style="text-align:left;">서비스 불가 일정</th>
+            <th>상태</th>
+            <th>수정</th>
+            <th>삭제</th>
+          </tr>
+        </thead>
+        <!-- 관리자 페이지에서는 tbody의 id를 adminScheduleListBody 로 유지 -->
+        <tbody id="adminScheduleListBody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;">
+      <button onclick="downloadExcel()">엑셀 다운로드</button>
+      <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none" onchange="uploadExcel(event)"/>
+      <button onclick="document.getElementById('excelFileInput').click()">엑셀 업로드</button>
+    </div>
+  </div>
 
       <!-- 유저 목록 -->
       <div id="adminUserListPane" class="admin-pane">
@@ -339,6 +343,7 @@
         <th>취소(cancel)</th>
         <th>확정(final)</th>
         <th>불가(unavailable)</th>
+        <th>완료(completed)</th>
         <th>삭제</th>
       </tr>
     </thead>
@@ -365,50 +370,54 @@
     <label>불가(unavailable) 색상</label>
     <input type="color" id="inputCompanyColorUnavailable" value="#cccccc"/>
   </div>
+  <div class="admin-form-row">
+    <label>완료(completed) 색상</label>
+    <input type="color" id="inputCompanyColorCompleted" value="#3498db"/>
+  </div>
   <!-- 추가/수정 버튼은 색상 입력란 아래에 위치 -->
   <button onclick="saveCompanyColor()">추가/수정</button>
 </div>
 
 
-<!-- 관리자 페이지의 변경 히스토리 섹션 -->
-<div id="adminHistoryPane" class="admin-pane">
-  <h4>변경 히스토리</h4>
-  <div class="admin-form-row">
-    <label>히스토리 최대 개수</label>
-    <input type="number" id="historyLimitInput" style="width:120px;" />
-  </div>
-  <button onclick="setHistoryLimit()">설정 저장</button>
-  <button onclick="downloadHistoryExcel()" class="excel-download-btn">히스토리 엑셀 다운로드</button>
-  
-  <!-- 히스토리 테이블 컨테이너 -->
-  <div class="history-table-container" style="margin-top:10px; clear:both;">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th style="width:80px;">시간</th>
-          <th>사용자</th>
-          <th>변경 전 시작일</th>
-          <th>변경 전 종료일</th>
-          <th>변경 후 시작일</th>
-          <th>변경 후 종료일</th>
-          <th>구분</th>
-          <th>업체</th>
-          <th>엔지니어</th>
-          <th>변경 전 Ship Name</th>
-          <th>변경 후 Ship Name</th>
-          <th>변경 전 IMO No.</th>
-          <th>변경 후 IMO No.</th>
-          <th>변경 전 Hull No.</th>
-          <th>변경 후 Hull No.</th>
-          <th>변경 전 지역</th>
-          <th>변경 후 지역</th>
-          <th>담당자</th>
-        </tr>
-      </thead>
-      <tbody id="adminHistoryBody"></tbody>
-    </table>
-  </div>
-</div>
+      <!-- 변경 히스토리 -->
+      <div id="adminHistoryPane" class="admin-pane">
+        <h4>변경 히스토리</h4>
+        <div class="admin-form-row">
+          <label>히스토리 최대 개수</label>
+          <input type="number" id="historyLimitInput" style="width:120px;" />
+        </div>
+        <button onclick="setHistoryLimit()">설정 저장</button>
+        <button onclick="downloadHistoryExcel()" class="excel-download-btn">히스토리 엑셀 다운로드</button>
+        
+        <!-- 히스토리 테이블 컨테이너 -->
+        <div class="history-table-container" style="margin-top:10px; clear:both;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width:80px;">시간</th>
+                <th>사용자</th>
+                <th>변경 전 시작일</th>
+                <th>변경 전 종료일</th>
+                <th>변경 후 시작일</th>
+                <th>변경 후 종료일</th>
+                <th>구분</th>
+                <th>업체</th>
+                <th>엔지니어</th>
+                <th>변경 전 Ship Name</th>
+                <th>변경 후 Ship Name</th>
+                <th>변경 전 IMO No.</th>
+                <th>변경 후 IMO No.</th>
+                <th>변경 전 Hull No.</th>
+                <th>변경 후 Hull No.</th>
+                <th>변경 전 지역</th>
+                <th>변경 후 지역</th>
+                <th>담당자</th>
+              </tr>
+            </thead>
+            <tbody id="adminHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
 
 <!-- 관리자 페이지: 접속 현황 판 -->
 <div id="adminAccessHistoryPane" class="admin-pane">
@@ -441,9 +450,6 @@
 
     </section>
   </div>
-
-
-
 <footer style="text-align:center; padding:10px; font-size:0.8em; color:#555;">
   <button onclick="logout()" style="background:#c0392b; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; margin-bottom:8px;">
     로그아웃
@@ -458,8 +464,10 @@
 
 
   <!-- 스케줄 등록/수정 모달 -->
-  <div id="modal-background">
-    <div class="modal" id="scheduleModal">
+<div id="modal-background" style="display:none;">
+  <div class="modal" id="scheduleModal">
+    <!-- 우측 상단 X 버튼 -->
+    <button class="modal-close" onclick="closeModal()">×</button>
       <div id="scheduleStatusLabel"></div>
       <h3>스케줄 등록/수정</h3>
       <div class="modal-row" id="modalUserRow" style="display:none;">
@@ -474,14 +482,40 @@
         <label>본사 담당자</label>
         <select id="modalManagerSelect"></select>
       </div>
-      <div class="modal-row">
-        <label>시작일</label>
-<input type="date" id="modalStartDate" onchange="updateEngineerLists()"/>
-      </div>
-      <div class="modal-row">
-        <label>종료일</label>
-        <input type="date" id="modalEndDate" onchange="updateEngineerLists()"/>
-      </div>
+      
+      <!-- 시작일/종료일을 한 줄에 표시 -->
+<!-- 시작일/종료일 -->
+<div class="modal-row">
+  <div class="date-input-container">
+    <div class="date-input-field">
+      <label>시작일</label>
+      <input type="date" id="modalStartDate" onchange="updateEngineerLists()"/>
+    </div>
+    <div class="date-input-field">
+      <label>종료일</label>
+      <input type="date" id="modalEndDate" onchange="updateEngineerLists()"/>
+    </div>
+  </div>
+</div>
+
+<!-- ETA, ETB, ETD -->
+<!-- 변경 후: three-date-row 클래스를 추가하여 한 줄 배치 -->
+<div class="modal-row three-date-row">
+  <div class="date-input-field">
+    <label>ETA (도착예정)</label>
+    <input type="date" id="modalETA"/>
+  </div>
+  <div class="date-input-field">
+    <label>ETB (접안예정)</label>
+    <input type="date" id="modalETB"/>
+  </div>
+  <div class="date-input-field">
+    <label>ETD (출항예정)</label>
+    <input type="date" id="modalETD"/>
+  </div>
+</div>
+
+      
       <div class="modal-row">
         <label>IMO No.</label>
         <input type="text" id="modalIMONo"/>
@@ -534,11 +568,11 @@
 
       <div class="modal-buttons">
         <div class="primary-buttons">
-          <button onclick="closeModal()">취소</button>
           <button id="btnDeleteSchedule" onclick="deleteSchedule()" style="display:none;background:#c0392b;">삭제</button>
           <button id="btnCancelSchedule" onclick="cancelSchedule()" style="display:none;background:#9b59b6;">일정 취소</button>
           <button id="btnSaveSchedule" onclick="saveSchedule()" style="background:#2980b9;">일정 추가</button>
           <button id="btnFinalizeSchedule" onclick="finalizeSchedule()" style="display:none;background:#27ae60;">최종 확정</button>
+          <button id="btnCompleteService" onclick="completeService()" style="display:none;background:#3498db;">서비스 완료</button>
         </div>
         <div class="secondary-buttons">
           <button id="btnSendEmail" onclick="sendEmailNotification()" style="background:#2980b9;">이메일 발송</button>
@@ -562,7 +596,7 @@
             </tr>
           </thead>
           <tbody id="timeTableBody">
-          </tbody>
+</tbody>
         </table>
       </div>
       <button onclick="addTimeTableRow()">행 추가</button>
@@ -627,7 +661,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-auth-compat.js"></script>
 
-<script src="main.js?v=1.0.2"></script>
+<script src="main.js?v=1.0.1"></script>
 
 </body>
 </html>
