@@ -276,8 +276,11 @@ section.active { display: block; }
   border-bottom: 1px solid #ddd; padding-bottom: 4px;
 }
 #scheduleStatusLabel {
-  position: absolute; right: 12px; top: 8px;
-  font-size: 0.8em; color: #999;
+  position: absolute;
+  top: 10px;
+  right: 40px; /* X 버튼(오른쪽 10px)과 겹치지 않도록 오른쪽에서 40px 떨어지게 함 */
+  font-size: 0.9em;
+  color: #999;
 }
 .modal-row { margin-bottom: 6px; }
 .modal-row label {
@@ -306,6 +309,7 @@ section.active { display: block; }
   font-size: 0.85em;
   cursor: pointer;
   transition: background 0.3s, transform 0.3s;
+  white-space: nowrap;
 }
 .modal-buttons button:hover {
   background: #34495e;
@@ -337,20 +341,40 @@ section.active { display: block; }
          스케줄 목록만 좌우 스크롤이 적용되도록 함
     ------------------------------*/
 .schedule-list-container {
+  width: 100%;
   overflow-x: auto;
-}
-.schedule-list-container table {
-  min-width: 800px;
+  margin-bottom: 15px;
 }
 
+.schedule-list-container table {
+  min-width: 1000px; /* 최소 너비 설정 - 화면보다 넓게 설정하여 스크롤 생성 */
+  width: 100%;
+}
 /* -----------------------------------------
-    PC 버전 모드 스타일 (화면 폭 2배 적용)
+    PC 버전 모드 스타일 (화면 폭 2배 적용 + 20% 확대)
 ------------------------------------------ */
 .pc-version header,
 .pc-version #container {
   max-width: 960px;
+  font-size: 1.2em; /* 20% 크기 확대 */
 }
 
+.pc-version .modal {
+  max-width: 500px; /* 모달 크기도 확대 */
+}
+
+.pc-version .admin-table,
+.pc-version .modal-row input,
+.pc-version .modal-row textarea,
+.pc-version .modal-row select {
+  font-size: 1em; /* PC 모드에서 입력 필드 크기 확대 */
+}
+
+.pc-version .schedule-bar {
+  height: 19px; /* 일정 바 높이 증가 */
+}
+
+/* 기존 PC 버전 관련 스타일 */
 #monthCompanyFilter, #weekCompanyFilter {
   padding: 4px;
   border: 1px solid #ccc;
@@ -359,7 +383,6 @@ section.active { display: block; }
 }
 
 #adminAccessHistoryPane {
-
   border: 1px solid #ddd;
   padding: 10px;
   border-radius: 4px;
@@ -387,7 +410,24 @@ section.active { display: block; }
 #adminAccessHistoryBody tr:hover {
   background-color: #e9e9e9;
 }
+/* PC 버전 특화 스타일 */
+.pc-version .schedule-list-container {
+  max-width: 100%;
+  overflow-x: auto;
+}
 
+.pc-version .schedule-list-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.pc-version .schedule-list-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.pc-version .schedule-list-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
 /* ------------------------------
        11) 히스토리 테이블 스타일 (좌우 스크롤 적용)
     ------------------------------*/
@@ -557,4 +597,96 @@ section.active { display: block; }
 .excel-download-btn::before {
   content: "📥";
   font-size: 1.1em;
+}
+
+/* 시작일/종료일, ETA/ETB/ETD 스타일 */
+.schedule-date-container {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.schedule-date-item {
+  flex: 1;
+}
+
+.schedule-date-item label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.75em;
+  font-weight: bold;
+}
+
+.schedule-date-item input {
+  width: 100%;
+  padding: 6px;
+  font-size: 0.75em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+input[type="datetime-local"] {
+  padding: 5px;
+  font-size: 0.75em;
+}
+
+/* 날짜 입력 필드 스타일 수정 */
+.date-input-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+}
+
+.date-input-field {
+  flex: 1;
+  min-width: 140px;
+}
+
+.date-input-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.75em;
+  font-weight: bold;
+}
+
+.date-input-field input {
+  width: 100%;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .date-input-container {
+    flex-direction: column;
+  }
+  
+  .date-input-field {
+    width: 100%;
+  }
+}
+
+.three-date-row {
+  display: flex;
+  flex-wrap: nowrap; /* 한 줄에 유지 */
+  gap: 5px;        /* 필요한 경우 간격 조정 */
+}
+.three-date-row .date-input-field {
+  flex: 1;
+  min-width: 0;    /* 필드가 컨테이너 폭에 맞게 축소됨 */
+}
+
+.modal .modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 1.5em;
+  cursor: pointer;
+  line-height: 1;
+  color: #333;
+}
+.modal .modal-close:hover {
+  color: #000;
 }
