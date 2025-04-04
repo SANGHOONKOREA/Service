@@ -653,6 +653,9 @@ function openModal(scheduleId = null, dateStr = null){
   document.getElementById("modalETB").value = "";
   document.getElementById("modalETD").value = "";
 
+  // 서비스 불가 체크박스에 이벤트 핸들러 추가
+  document.getElementById("modalUnavailable").onchange = toggleManagerField;
+
   // 1) 권한별 엔지니어/담당자/체크박스 표시
   if (currentUser.role === "관리자" || currentUser.role === "본사") {
     // 관리자/본사: 엔지니어 선택 전체, 본사 담당자 전체, "기타 협력사 포함" 체크박스 보이기
@@ -779,8 +782,46 @@ if (scheduleId) {
     document.getElementById("modalStartDate").value,
     document.getElementById("modalEndDate").value
   );
+  
+  // 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 초기 상태 설정
+  toggleManagerField();
 }
-
+// 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
+function toggleManagerField() {
+  const isUnavailable = document.getElementById("modalUnavailable").checked;
+  const managerSelect = document.getElementById("modalManagerSelect");
+  const managerRow = document.getElementById("modalManagerRow");
+  
+  if (isUnavailable) {
+    // 서비스 불가 체크됨: 본사 담당자 비활성화 및 "미해당" 표시
+    managerSelect.disabled = true;
+    
+    // 기존 선택값 저장 (해제 시 복원을 위해)
+    managerSelect.setAttribute('data-prev-value', managerSelect.value);
+    
+    // 옵션 초기화 후 "미해당" 옵션만 추가
+    managerSelect.innerHTML = '';
+    const unavailableOption = document.createElement('option');
+    unavailableOption.value = '';
+    unavailableOption.textContent = '미해당';
+    managerSelect.appendChild(unavailableOption);
+    
+    // 스타일 변경 - 회색 배경으로 비활성화 표시 강화
+    managerSelect.style.backgroundColor = '#f0f0f0';
+    managerSelect.style.color = '#999';
+  } else {
+    // 서비스 불가 체크 해제됨: 본사 담당자 활성화 및 옵션 복원
+    managerSelect.disabled = false;
+    managerSelect.style.backgroundColor = '';
+    managerSelect.style.color = '';
+    
+    // 이전에 저장된 선택값 가져오기
+    const prevValue = managerSelect.getAttribute('data-prev-value') || '';
+    
+    // 본사 담당자 옵션 다시 빌드
+    buildManagerSelectOptions(managerSelect, prevValue);
+  }
+}
 function updateEngineerLists() {
   var sDate = document.getElementById("modalStartDate").value;
   var eDate = document.getElementById("modalEndDate").value;
@@ -1002,9 +1043,9 @@ function saveSchedule(){
   const isUnavailable = document.getElementById("modalUnavailable").checked;
   
   // ETA, ETB, ETD 값 가져오기
-const etaVal = document.getElementById("modalETA").value;
-const etbVal = document.getElementById("modalETB").value;
-const etdVal = document.getElementById("modalETD").value;
+  const etaVal = document.getElementById("modalETA").value;
+  const etbVal = document.getElementById("modalETB").value;
+  const etdVal = document.getElementById("modalETD").value;
   
   if(!sDate || !eDate){ alert("시작/종료일을 입력하세요"); return; }
   if(sDate > eDate){ alert("종료일이 시작일보다 빠릅니다."); return; }
@@ -1012,7 +1053,9 @@ const etdVal = document.getElementById("modalETD").value;
   let mainUserId = (document.getElementById("modalUserRow").style.display !== "none") ? document.getElementById("modalUserSelect").value : currentUid;
   const extraContainer = document.getElementById("additionalEngineerRows");
   const extraSelects = extraContainer.querySelectorAll("select");
-  const managerId = document.getElementById("modalManagerSelect").value;
+  
+  // 서비스 불가 체크되었으면 managerId는 빈 값 사용, 아니면 선택된 값 사용
+  const managerId = isUnavailable ? "" : document.getElementById("modalManagerSelect").value;
   
   if(editingScheduleId){
     var finalizeAnswer = confirm("일정변경 후에 최종 확정 할까요?");
@@ -1030,7 +1073,7 @@ const etdVal = document.getElementById("modalETD").value;
       schedules[idx].details = workContent;
       schedules[idx].message = transferMsg;
       schedules[idx].unavailable = isUnavailable;
-      schedules[idx].managerId = managerId;
+      schedules[idx].managerId = managerId; // 서비스 불가 여부에 따라 결정된 managerId 사용
       
       // ETA, ETB, ETD 추가
       schedules[idx].eta = etaVal;
@@ -1058,7 +1101,7 @@ const etdVal = document.getElementById("modalETD").value;
             details: workContent,
             message: transferMsg,
             unavailable: isUnavailable,
-            managerId: managerId,
+            managerId: managerId, // 서비스 불가 여부에 따라 결정된 managerId 사용
             eta: etaVal,
             etb: etbVal,
             etd: etdVal,
@@ -1093,7 +1136,7 @@ const etdVal = document.getElementById("modalETD").value;
       details: workContent,
       message: transferMsg,
       unavailable: isUnavailable,
-      managerId: managerId,
+      managerId: managerId, // 서비스 불가 여부에 따라 결정된 managerId 사용
       eta: etaVal,
       etb: etbVal,
       etd: etdVal,
@@ -1116,7 +1159,7 @@ const etdVal = document.getElementById("modalETD").value;
           details: workContent,
           message: transferMsg,
           unavailable: isUnavailable,
-          managerId: managerId,
+          managerId: managerId, // 서비스 불가 여부에 따라 결정된 managerId 사용
           eta: etaVal,
           etb: etbVal,
           etd: etdVal,
