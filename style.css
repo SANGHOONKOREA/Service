@@ -715,15 +715,28 @@ input[type="datetime-local"] {
 }
 @media (max-width: 480px) {
   #monthCompanyFilterContainer {
-    flex-wrap: nowrap;        /* 한 줄에 모두 표시 */
-    gap: 4px;
-    font-size: 0.65em;         /* 전체 폰트 크기를 줄여서 공간 확보 */
-    overflow: hidden;          /* 넘치는 내용은 숨김 처리 */
-  }
-  #monthCompanyFilterContainer > * {
-    flex-shrink: 1;           /* 요소들이 공간에 맞게 축소됨 */
-    white-space: nowrap;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 2px;
+    font-size: 0.65em;  /* 글씨 크기 축소 */
+    width: 100%;
     overflow: hidden;
-    text-overflow: ellipsis;  /* 내용이 길 경우 ... 처리 */
+  }
+  .filter-field {
+    flex: 1 1 33%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+  }
+  .filter-field label {
+    margin-right: 2px;
+    white-space: nowrap;
+  }
+  .filter-field select,
+  .filter-field input {
+    flex: 1;
+    padding: 2px;
+    box-sizing: border-box;
   }
 }
+
