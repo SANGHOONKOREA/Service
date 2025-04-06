@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- 제목 변경 -->
   <title>S&SYS SERVICE MANAGEMENT</title>
-<link rel="stylesheet" href="style.css?v=1.0.3">
+<link rel="stylesheet" href="style.css?v=1.0.2">
   
   <!-- EmailJS SDK (클라이언트 사이드) -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
@@ -58,17 +58,51 @@
         <button onclick="nextMonth()">다음달 &gt;</button>
       </div>
 <div id="monthCompanyFilterContainer" style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
-  <label for="monthCompanyFilter">업체별 필터: </label>
+  <label for="monthCompanyFilter">업체: </label>
   <select id="monthCompanyFilter" onchange="refreshCalendar()">
     <option value="">전체</option>
   </select>
   
-  <!-- 담당자 필터 추가 -->
-  <label for="monthManagerFilter">담당자 필터: </label>
+  <!-- 담당자 필터 -->
+  <label for="monthManagerFilter">담당: </label>
   <select id="monthManagerFilter" onchange="refreshCalendar()">
     <option value="">전체</option>
   </select>
+  
+  <!-- 선박 필터 추가 -->
+  <label for="monthShipFilter">선박: </label>
+  <input type="text" id="monthShipFilter" placeholder="선박명 입력..." oninput="filterShipNameDropdown()">
 </div>
+<!-- 선박 필터 입력에 따른 실시간 드롭다운 -->
+<div id="shipDropdownContainer" style="display: none;">
+  <ul id="shipDropdown" style="list-style: none; margin: 0; padding: 0; border: 1px solid #ccc; max-height: 150px; overflow-y: auto;"></ul>
+</div>
+
+<div id="shipScheduleModal" style="display: none; position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); z-index: 1000;">
+  <div class="modal" id="shipScheduleModalContent" style="max-width: 500px; margin: 50px auto;">
+    <button class="modal-close" onclick="closeShipScheduleModal()">×</button>
+    <h3>선박 스케쥴 목록</h3>
+    <div id="shipScheduleListContainer">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Ship Name</th>
+            <th>Hull No.</th>
+            <th>엔지니어</th>
+            <th>본사 담당자</th>
+            <th>시작일</th>
+            <th>종료일</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody id="shipScheduleListBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+
       <div style="position:relative;">
         <table class="month-table">
           <thead>
@@ -92,6 +126,11 @@
       </div>
     </section>
 
+
+
+
+
+
     <!-- (D) 주간 달력 -->
     <section id="weeklySection">
       <div class="week-controls">
@@ -101,13 +140,13 @@
       </div>
 <!-- 주간 달력: 업체별 필터 추가 -->
 <div id="weekCompanyFilterContainer" style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
-  <label for="weekCompanyFilter">업체별 필터: </label>
+  <label for="weekCompanyFilter">업체: </label>
   <select id="weekCompanyFilter" onchange="refreshCalendar()">
     <option value="">전체</option>
   </select>
   
   <!-- 담당자 필터 추가 -->
-  <label for="weekManagerFilter">담당자 필터: </label>
+  <label for="weekManagerFilter">담당: </label>
   <select id="weekManagerFilter" onchange="refreshCalendar()">
     <option value="">전체</option>
   </select>
@@ -520,18 +559,31 @@
         <label>IMO No.</label>
         <input type="text" id="modalIMONo"/>
       </div>
-      <div class="modal-row">
-        <label>Ship Name</label>
-        <input type="text" id="modalLine"/>
-      </div>
-      <div class="modal-row">
-        <label>Hull No.</label>
-        <input type="text" id="modalHullNo"/>
-      </div>
-      <div class="modal-row">
-        <label>지역</label>
-        <input type="text" id="modalRegion"/>
-      </div>
+<div class="modal-row" style="display: flex; gap: 10px;">
+  <div style="flex: 1;">
+    <label>Ship Name</label>
+    <input type="text" id="modalLine"/>
+  </div>
+  <div style="flex: 1;">
+    <label>Hull No.</label>
+    <input type="text" id="modalHullNo"/>
+  </div>
+</div>
+
+<div class="modal-row" style="display: flex; gap: 10px;">
+  <div style="flex: 1;">
+    <label>국가</label>
+    <input type="text" id="modalCountry" placeholder="국가를 입력하세요..." oninput="filterCountryList()">
+  </div>
+  <div style="flex: 1;">
+    <label>지역</label>
+    <input type="text" id="modalRegion"/>
+  </div>
+</div>
+<div class="modal-row" id="countryDropdownContainer" style="display: none;">
+  <ul id="countryDropdown" style="list-style: none; margin: 0; padding: 0; border: 1px solid #ccc; max-height: 150px; overflow-y: auto;"></ul>
+</div>
+
       <div class="modal-row">
         <label>작업내용</label>
         <textarea id="modalDetails" style="width:100%; height:60px;"></textarea>
@@ -661,7 +713,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-auth-compat.js"></script>
 
-<script src="main.js?v=1.0.3"></script>
+<script src="main.js?v=1.0.2"></script>
 
 </body>
 </html>
