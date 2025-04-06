@@ -690,3 +690,26 @@ input[type="datetime-local"] {
 .modal .modal-close:hover {
   color: #000;
 }
+#monthManagerFilter,
+#weekManagerFilter {
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+#modalStartDate,
+#modalEndDate,
+#modalETA,
+#modalETB,
+#modalETD {
+  font-size: 13px;
+}
+#shipScheduleModal .admin-table {
+  font-size: 0.65em;
+}
+#monthShipFilter {
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
