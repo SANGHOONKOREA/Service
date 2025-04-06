@@ -622,7 +622,7 @@ function nextWeek(){ currentWeekDate.setDate(currentWeekDate.getDate()+7); drawW
 function openModal(scheduleId = null, dateStr = null){
   editingScheduleId = scheduleId;
   document.getElementById("modal-background").style.display = "block";
-
+  loadCountryList();
   const userRow = document.getElementById("modalUserRow");
   const sel = document.getElementById("modalUserSelect");
   const extraContainer = document.getElementById("additionalEngineerRows");
@@ -648,6 +648,8 @@ function openModal(scheduleId = null, dateStr = null){
   document.getElementById("modalMessage").value = "";
   document.getElementById("modalUnavailable").checked = false;
   
+
+
   // ETA, ETB, ETD 필드 초기화
   document.getElementById("modalETA").value = "";
   document.getElementById("modalETB").value = "";
@@ -901,6 +903,53 @@ function populateCompanyFilters() {
   populateManagerFilters();
 }
 
+// 전역 변수에 국가 리스트 저장
+var countryList = [];
+
+// 국가 리스트를 온라인에서 불러오는 함수
+function loadCountryList() {
+  if(countryList.length > 0) return; // 이미 불러왔다면 생략
+  fetch("https://raw.githubusercontent.com/umpirsky/country-list/master/data/ko/country.json")
+    .then(response => response.json())
+    .then(data => {
+      // data는 { "AF": "아프가니스탄", "AX": "올란드 제도", ... } 형태이므로 값만 추출
+      countryList = Object.values(data).sort();
+    })
+    .catch(err => console.error("국가 리스트 불러오기 에러:", err));
+}
+
+
+// 사용자가 입력할 때마다 드롭다운 필터링하는 함수
+function filterCountryList() {
+  const input = document.getElementById("modalCountry");
+  const filter = input.value.toLowerCase();
+  const dropdown = document.getElementById("countryDropdown");
+  dropdown.innerHTML = "";
+  if(filter === "") {
+    document.getElementById("countryDropdownContainer").style.display = "none";
+    return;
+  }
+  const filtered = countryList.filter(country => country.toLowerCase().includes(filter));
+  if(filtered.length === 0) {
+    document.getElementById("countryDropdownContainer").style.display = "none";
+    return;
+  }
+  filtered.forEach(country => {
+    const li = document.createElement("li");
+    li.textContent = country;
+    li.style.padding = "4px";
+    li.style.cursor = "pointer";
+    li.onclick = function() {
+      input.value = country;
+      document.getElementById("countryDropdownContainer").style.display = "none";
+    };
+    dropdown.appendChild(li);
+  });
+  document.getElementById("countryDropdownContainer").style.display = "block";
+}
+
+
+
 function closeModal(){
   document.getElementById("modal-background").style.display = "none";
   editingScheduleId = null;
@@ -925,6 +974,124 @@ function deleteSchedule(){
     alert("삭제 중 에러 발생: " + err.message);
   });
 }
+
+function filterShipNameDropdown() {
+  const input = document.getElementById("monthShipFilter");
+  const filter = input.value.toLowerCase();
+  const dropdown = document.getElementById("shipDropdown");
+  dropdown.innerHTML = "";
+  if (filter === "") {
+    document.getElementById("shipDropdownContainer").style.display = "none";
+    return;
+  }
+  // schedules 배열에서 필터에 일치하는 고유 선박명 추출
+  let shipNames = new Set();
+  schedules.forEach(sch => {
+    if (sch.lineName && sch.lineName.toLowerCase().includes(filter)) {
+      shipNames.add(sch.lineName);
+    }
+  });
+  shipNames = Array.from(shipNames);
+  if (shipNames.length === 0) {
+    document.getElementById("shipDropdownContainer").style.display = "none";
+    return;
+  }
+  shipNames.forEach(ship => {
+    const li = document.createElement("li");
+    li.textContent = ship;
+    li.style.padding = "4px";
+    li.style.cursor = "pointer";
+li.onclick = function() {
+  showShipScheduleModal(ship);
+  input.value = "";
+  document.getElementById("shipDropdownContainer").style.display = "none";
+};
+    dropdown.appendChild(li);
+  });
+  document.getElementById("shipDropdownContainer").style.display = "block";
+}
+
+function showShipScheduleModal(shipName) {
+  // 선택한 선박과 정확히 일치하는 스케쥴 필터링 (필요시 대소문자 구분 없이 처리 가능)
+  const filteredSchedules = schedules.filter(sch => sch.lineName === shipName);
+  const tbody = document.getElementById("shipScheduleListBody");
+  tbody.innerHTML = "";
+  if(filteredSchedules.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 7;
+    td.textContent = "해당 선박의 스케쥴이 없습니다.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  } else {
+    filteredSchedules.forEach(sch => {
+      const tr = document.createElement("tr");
+      // Ship Name
+      const tdShip = document.createElement("td");
+      tdShip.textContent = sch.lineName || "";
+      tr.appendChild(tdShip);
+      // Hull No.
+      const tdHull = document.createElement("td");
+      tdHull.textContent = sch.hullNo || "";
+      tr.appendChild(tdHull);
+      // 엔지니어 (users에서 이름 조회)
+      const tdEngineer = document.createElement("td");
+      const engineer = (sch.userId && users[sch.userId]) ? users[sch.userId].id : "";
+      tdEngineer.textContent = engineer;
+      tr.appendChild(tdEngineer);
+      // 본사 담당자
+      const tdManager = document.createElement("td");
+      const manager = (sch.managerId && users[sch.managerId]) ? users[sch.managerId].id : "";
+      tdManager.textContent = manager;
+      tr.appendChild(tdManager);
+      // 시작일
+      const tdStart = document.createElement("td");
+      tdStart.textContent = sch.startDate || "";
+      tr.appendChild(tdStart);
+      // 종료일
+      const tdEnd = document.createElement("td");
+      tdEnd.textContent = sch.endDate || "";
+      tr.appendChild(tdEnd);
+      // 상태
+      const tdStatus = document.createElement("td");
+      if (sch.unavailable) {
+        tdStatus.textContent = "서비스 불가";
+      } else if (sch.status === "cancelled") {
+        tdStatus.textContent = "일정 취소";
+      } else if (sch.status === "completed") {
+        tdStatus.textContent = "서비스 완료";
+      } else if (sch.status === "finalized" || sch.status === "일정 변경 / 최종 확정" || sch.status === "일정 확정") {
+        tdStatus.textContent = "일정 확정";
+      } else if (sch.status === "일정 등록 대기") {
+        tdStatus.textContent = "일정 등록 대기";
+      } else if (sch.status === "일정 등록") {
+        tdStatus.textContent = "일정 등록";
+      } else if (sch.status === "일정 변경") {
+        tdStatus.textContent = "일정 변경";
+      } else {
+        tdStatus.textContent = sch.status || "";
+      }
+      tr.appendChild(tdStatus);
+      
+      // 행을 클릭하면 선박 스케쥴 모달은 닫히고, 해당 스케쥴의 상세 모달이 열리도록 함
+      tr.style.cursor = "pointer";
+      tr.onclick = function() {
+        closeShipScheduleModal();
+        openModal(sch.id);
+      };
+      tbody.appendChild(tr);
+    });
+  }
+  // 모달 표시
+  document.getElementById("shipScheduleModal").style.display = "block";
+}
+
+function closeShipScheduleModal() {
+  document.getElementById("shipScheduleModal").style.display = "none";
+}
+
+
+
 
 /****************************************
  12) 히스토리 기록
