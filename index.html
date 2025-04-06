@@ -57,26 +57,28 @@
         <span id="monthLabel"></span>
         <button onclick="nextMonth()">다음달 &gt;</button>
       </div>
-<div id="monthCompanyFilterContainer" style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
-  <label for="monthCompanyFilter">업체: </label>
-  <select id="monthCompanyFilter" onchange="refreshCalendar()">
-    <option value="">전체</option>
-  </select>
-  
-  <!-- 담당자 필터 -->
-  <label for="monthManagerFilter">담당: </label>
-  <select id="monthManagerFilter" onchange="refreshCalendar()">
-    <option value="">전체</option>
-  </select>
-  
-  <!-- 선박 필터 추가 -->
-  <label for="monthShipFilter">선박: </label>
-  <input type="text" id="monthShipFilter" placeholder="선박명 입력..." oninput="filterShipNameDropdown()">
+<div id="monthCompanyFilterContainer" style="margin-bottom:8px; display:flex; gap:4px; align-items:center;">
+  <div class="filter-field">
+    <label for="monthCompanyFilter">업체:</label>
+    <select id="monthCompanyFilter" onchange="refreshCalendar()">
+      <option value="">전체</option>
+    </select>
+  </div>
+  <div class="filter-field">
+    <label for="monthManagerFilter">담당:</label>
+    <select id="monthManagerFilter" onchange="refreshCalendar()">
+      <option value="">전체</option>
+    </select>
+  </div>
+  <div class="filter-field">
+    <label for="monthShipFilter">선박:</label>
+    <input type="text" id="monthShipFilter" placeholder="선박명 입력..." oninput="filterShipNameDropdown()">
+  </div>
 </div>
-<!-- 선박 필터 입력에 따른 실시간 드롭다운 -->
 <div id="shipDropdownContainer" style="display: none;">
   <ul id="shipDropdown" style="list-style: none; margin: 0; padding: 0; border: 1px solid #ccc; max-height: 150px; overflow-y: auto;"></ul>
 </div>
+
 
 <div id="shipScheduleModal" style="display: none; position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); z-index: 1000;">
   <div class="modal" id="shipScheduleModalContent" style="max-width: 500px; margin: 50px auto;">
