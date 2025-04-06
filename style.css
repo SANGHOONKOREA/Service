@@ -713,3 +713,11 @@ input[type="datetime-local"] {
   border-radius: 4px;
   font-size: 0.85em;
 }
+#monthShipFilter {
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.85em;
+  width: 100%;
+  box-sizing: border-box;
+}
