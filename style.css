@@ -714,26 +714,16 @@ input[type="datetime-local"] {
   font-size: 0.85em;
 }
 @media (max-width: 480px) {
-  /* 필터 컨테이너가 자동으로 줄바꿈되도록 설정 */
   #monthCompanyFilterContainer {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;        /* 한 줄에 모두 표시 */
     gap: 4px;
+    font-size: 0.65em;         /* 전체 폰트 크기를 줄여서 공간 확보 */
+    overflow: hidden;          /* 넘치는 내용은 숨김 처리 */
   }
-  /* 모든 필터의 라벨과 입력/선택 요소의 폰트 크기를 줄임 */
-  #monthCompanyFilterContainer label,
-  #monthCompanyFilterContainer select,
-  #monthCompanyFilterContainer input {
-    font-size: 0.75em;
-  }
-  /* 각 요소가 부모의 폭을 넘지 않도록 flex와 max-width 지정 */
-  #monthCompanyFilterContainer select,
-  #monthCompanyFilterContainer input {
-    flex: 1 1 auto;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-  /* 선박 필터 입력 필드에 대해 폭 100% 설정 */
-  #monthShipFilter {
-    width: 100%;
+  #monthCompanyFilterContainer > * {
+    flex-shrink: 1;           /* 요소들이 공간에 맞게 축소됨 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;  /* 내용이 길 경우 ... 처리 */
   }
 }
