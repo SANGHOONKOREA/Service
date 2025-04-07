@@ -740,3 +740,24 @@ input[type="datetime-local"] {
   }
 }
 
+@media (max-width: 480px) {
+  .modal-row.flex-fields {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: 100%;
+  }
+  .modal-row.flex-fields > div {
+    flex: 1;
+    min-width: 0;
+  }
+  .modal-row.flex-fields label {
+    font-size: 0.75em;
+    white-space: nowrap;
+  }
+  .modal-row.flex-fields input {
+    font-size: 0.75em;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
