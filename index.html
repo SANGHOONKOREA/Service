@@ -526,18 +526,20 @@
       
       <!-- 시작일/종료일을 한 줄에 표시 -->
 <!-- 시작일/종료일 -->
-<div class="modal-row">
-  <div class="date-input-container">
-    <div class="date-input-field">
-      <label>시작일</label>
-      <input type="date" id="modalStartDate" onchange="updateEngineerLists()"/>
+<!-- 시작일/종료일 (수정 후) -->
+<div class="modal-row" style="display: flex; flex-wrap: nowrap; gap: 10px;">
+  <div class="date-input-container" style="display: flex; width: 100%; gap: 10px; flex-wrap: nowrap;">
+    <div class="date-input-field" style="flex: 1 1 50%; min-width: 0;">
+      <label style="font-size: 0.8em;">시작일</label>
+      <input type="date" id="modalStartDate" onchange="updateEngineerLists()" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
     </div>
-    <div class="date-input-field">
-      <label>종료일</label>
-      <input type="date" id="modalEndDate" onchange="updateEngineerLists()"/>
+    <div class="date-input-field" style="flex: 1 1 50%; min-width: 0;">
+      <label style="font-size: 0.8em;">종료일</label>
+      <input type="date" id="modalEndDate" onchange="updateEngineerLists()" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
     </div>
   </div>
 </div>
+
 
 <!-- ETA, ETB, ETD -->
 <!-- 변경 후: three-date-row 클래스를 추가하여 한 줄 배치 -->
