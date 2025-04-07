@@ -561,27 +561,28 @@
         <label>IMO No.</label>
         <input type="text" id="modalIMONo"/>
       </div>
-<div class="modal-row" style="display: flex; gap: 10px;">
-  <div style="flex: 1;">
-    <label>Ship Name</label>
-    <input type="text" id="modalLine"/>
+<div class="modal-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">Ship Name</label>
+    <input type="text" id="modalLine" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
   </div>
-  <div style="flex: 1;">
-    <label>Hull No.</label>
-    <input type="text" id="modalHullNo"/>
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">Hull No.</label>
+    <input type="text" id="modalHullNo" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
   </div>
 </div>
 
-<div class="modal-row" style="display: flex; gap: 10px;">
-  <div style="flex: 1;">
-    <label>국가</label>
-    <input type="text" id="modalCountry" placeholder="국가를 입력하세요..." oninput="filterCountryList()">
+<div class="modal-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">국가</label>
+    <input type="text" id="modalCountry" placeholder="국가를 입력하세요..." oninput="filterCountryList()" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
   </div>
-  <div style="flex: 1;">
-    <label>지역</label>
-    <input type="text" id="modalRegion"/>
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">지역</label>
+    <input type="text" id="modalRegion" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
   </div>
 </div>
+
 <div class="modal-row" id="countryDropdownContainer" style="display: none;">
   <ul id="countryDropdown" style="list-style: none; margin: 0; padding: 0; border: 1px solid #ccc; max-height: 150px; overflow-y: auto;"></ul>
 </div>
