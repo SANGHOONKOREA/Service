@@ -73,6 +73,14 @@ function toggleVersion() {
 auth.onAuthStateChanged(user => {
   if (user) {
     currentUid = user.uid;
+    
+    // 접속 기록 저장 로직 추가 (여기에 추가)
+    db.ref("accessHistory").push({
+      userId: user.uid,
+      timestamp: new Date().toISOString(),
+      timezone: "Asia/Seoul"
+    });
+    
     db.ref("users/" + user.uid).once("value")
       .then(snap => {
         if (!snap.exists()) {
