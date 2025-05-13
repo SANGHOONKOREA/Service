@@ -761,3 +761,372 @@ input[type="datetime-local"] {
     box-sizing: border-box;
   }
 }
+/* 수정된 테이블 스타일 */
+.editable-table td[contenteditable="true"] {
+    padding: 4px;
+    min-height: 24px;
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
+    transition: background-color 0.2s;
+    max-height: 100px;  /* 셀 최대 높이 제한 */
+    overflow-y: auto;   /* 세로 스크롤 적용 */
+    white-space: pre-wrap; /* 줄바꿈 허용 */
+    word-break: break-word; /* 단어 내에서 줄바꿈 허용 */
+}
+
+.editable-table td[contenteditable="true"]:hover {
+    background-color: #f0f0f0;
+}
+
+.editable-table td[contenteditable="true"]:focus {
+    background-color: #e5f2ff;
+    outline: 2px solid #4a90e2;
+    box-shadow: 0 0 4px rgba(74, 144, 226, 0.3);
+}
+
+/* SHIP NAME, 상세, 전달사항 필드 너비 두 배로 설정 */
+.editable-table th[data-field="shipName"],
+.editable-table th[data-field="details"],
+.editable-table th[data-field="message"] {
+    min-width: 200px !important;
+    max-width: 600px !important;
+    width: 300px !important;
+}
+
+.editable-table td[data-field="shipName"],
+.editable-table td[data-field="details"],
+.editable-table td[data-field="message"] {
+    min-width: 200px !important;
+    max-width: 600px !important;
+    width: 300px !important;
+}
+
+/* 긴 텍스트 필드의 스크롤 설정 */
+.editable-table td[data-field="shipName"],
+.editable-table td[data-field="details"],
+.editable-table td[data-field="message"] {
+    max-height: 100px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* 스케줄 목록 테이블 컨테이너 스타일 수정 */
+.resizable-table-container {
+    width: 100%;
+    overflow-x: auto; /* 가로 스크롤 추가 */
+    max-height: calc(80vh - 200px); /* 전체화면 모드에서 버튼이 보이도록 높이 조정 */
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* 테이블 래퍼 스타일 수정 - 최소 폭 제거 */
+.table-wrapper {
+    width: auto; /* 자동 폭 설정 */
+    min-width: 100%; /* 최소 폭은 컨테이너 너비로 설정 */
+}
+
+th.resizable {
+    position: relative;
+    resize: horizontal;
+    overflow: auto;
+    min-width: 100px;
+    max-width: 300px;
+    word-break: break-word;
+}
+
+/* SHIP NAME, 상세, 전달사항 헤더 너비 조정 */
+th.resizable[data-field="shipName"],
+th.resizable[data-field="details"],
+th.resizable[data-field="message"] {
+    min-width: 200px !important;
+    max-width: 600px !important;
+    width: 300px !important;
+}
+
+th.resizable::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background-color: #e0e0e0;
+    cursor: col-resize;
+}
+
+/* 텍스트 영역도 스크롤 가능하게 */
+.modal-row textarea {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+/* SELECT 필드도 스크롤 가능하게 */
+.status-select {
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+/* 풀스크린 모드 */
+.fullscreen-table {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    z-index: 1000;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.fullscreen-table .resizable-table-container {
+    max-height: calc(100vh - 150px); /* 버튼이 보이도록 높이 조정 */
+    flex: 1;
+}
+
+.fullscreen-controls {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+/* 체크박스 스타일 */
+.schedule-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* 셀렉트 박스 스타일 */
+.status-select {
+    width: 100%;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+/* 날짜 입력 필드 */
+.date-input {
+    width: 100%;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* 변경된 셀 하이라이트 */
+.cell-modified {
+    background-color: rgba(255, 235, 59, 0.2) !important;
+}
+
+/* 행 작업 버튼 */
+.row-action-btn {
+    padding: 2px 5px;
+    margin: 2px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8em;
+}
+
+.row-action-btn.delete {
+    background: #e74c3c;
+}
+
+/* 전체화면 모드에서 하단 버튼 영역 스타일 추가 */
+.fullscreen-table .bottom-controls {
+    margin-top: 10px;
+    padding: 10px 0;
+    border-top: 1px solid #eee;
+    background: #fff;
+}
+
+/* 스크롤바 스타일 개선 */
+.resizable-table-container::-webkit-scrollbar {
+    height: 12px;
+    width: 12px;
+    background-color: #f5f5f5;
+}
+
+.resizable-table-container::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 10px;
+    border: 3px solid #f5f5f5;
+}
+
+.resizable-table-container::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+
+/* 테이블 헤더 고정 */
+.editable-table thead,
+.admin-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #f2f2f2;
+}
+
+/* 날짜 필드 너비 조정 */
+.editable-table th.resizable[data-field="startDate"],
+.editable-table th.resizable[data-field="endDate"],
+.editable-table th.resizable[data-field="eta"],
+.editable-table th.resizable[data-field="etb"],
+.editable-table th.resizable[data-field="etd"],
+.editable-table th.resizable[data-field="departureDate"] {
+    min-width: 120px;
+    width: 120px;
+}
+
+/* 체크박스 열 너비 조정 */
+.editable-table th.resizable[data-field="unavailable"] {
+    min-width: 80px;
+    width: 80px;
+}
+
+/* 작업 열 너비 조정 */
+.editable-table th.resizable[data-field="action"] {
+    min-width: 120px;
+    width: 120px;
+}
+
+/* 상태 표시줄 스타일 */
+.table-status-bar {
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.table-status-info {
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* PC 버전에서의 스크롤 개선 */
+.pc-version .resizable-table-container,
+.pc-version .schedule-list-container {
+    max-height: calc(80vh - 180px);
+}
+
+.pc-version .fullscreen-table .resizable-table-container {
+    max-height: calc(100vh - 120px);
+}
+
+/* 관리자 스케줄 테이블과 상태 스케줄 테이블 통일된 스타일 */
+#adminScheduleListBody td,
+#statusScheduleListBody td {
+    white-space: normal;
+    word-break: break-word;
+    vertical-align: top;
+    padding: 6px;
+}
+
+/* 기본적인 테이블 셀 스타일 추가 */
+.editable-table td,
+.admin-table td {
+    padding: 6px 8px;
+}
+
+/* 상태 관련 스케줄 목록 컨테이너도 동일하게 설정 */
+.schedule-list-container {
+    width: 100%;
+    overflow-x: auto;
+    max-height: calc(80vh - 250px);
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* 스크롤바 스타일 통일 */
+.schedule-list-container::-webkit-scrollbar {
+    height: 12px;
+    width: 12px;
+    background-color: #f5f5f5;
+}
+
+.schedule-list-container::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 10px;
+    border: 3px solid #f5f5f5;
+}
+
+.schedule-list-container::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+
+/* 테이블 스크롤 조절 기능 개선 */
+.resizable-table-container {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.editable-table {
+  width: auto !important;
+  min-width: 100% !important;
+  border-collapse: collapse;
+}
+
+.column-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.2s;
+}
+
+.column-resizer:hover {
+  background-color: rgba(0, 120, 215, 0.3);
+}
+
+.resizable-table-container::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+  background-color: #f5f5f5;
+}
+
+.resizable-table-container::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 6px;
+  border: 3px solid #f5f5f5;
+}
+
+.resizable-table-container::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+}
+
+/* 스크롤 기간 동안 헤더 고정 */
+.editable-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f2f2f2;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+}
+
+/* 흰색 배경으로 통일 */
+.editable-table td input,
+.editable-table td select,
+.editable-table td textarea {
+  background-color: #fff !important;
+  border: 1px solid #ddd !important;
+  padding: 4px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
