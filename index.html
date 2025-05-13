@@ -270,45 +270,70 @@
     <button onclick="showAdminPane('accessHistory')">접속 현황</button>
   </div>
 
-      <!-- 관리자 스케줄 목록 (좌우 스크롤 적용) -->  
+<!-- 수정된 스케줄 테이블 구조 -->
 <div id="adminScheduleListPane" class="admin-pane">
     <h4>스케줄 목록</h4>
-    <div style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
-      <label>조회 시작일</label>
-      <input type="date" id="adminQueryStart">
-      <label>조회 종료일</label>
-      <input type="date" id="adminQueryEnd">
-      <button onclick="drawScheduleList()">조회</button>
+    <div class="schedule-controls" style="margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap; justify-content:space-between; align-items:center;">
+        <div style="display:flex; gap:8px; align-items:center;">
+            <label>조회 시작일</label>
+            <input type="date" id="adminQueryStart">
+            <label>조회 종료일</label>
+            <input type="date" id="adminQueryEnd">
+            <button onclick="drawScheduleList()" class="admin-btn">조회</button>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <button onclick="addNewScheduleRow()" class="admin-btn" style="background:#27ae60;">
+                ➕ 필드 추가
+            </button>
+            <button onclick="toggleFullscreenTable()" class="admin-btn" id="fullscreenTableBtn">
+                <span id="fullscreenIcon">⛶</span> 전체화면
+            </button>
+            <button onclick="saveScheduleTable()" class="admin-btn" style="background:#27ae60;">
+                💾 변경사항 저장
+            </button>
+        </div>
     </div>
-    <div class="schedule-list-container">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>업체</th>
-            <th>엔지니어</th>
-            <th>기간</th>
-            <th>Ship Name</th>
-            <th>IMO 번호</th>
-            <th>Hull 번호</th>
-            <th>지역</th>
-            <th>담당자</th>
-            <th>상세</th>
-            <th style="text-align:left;">서비스 불가 일정</th>
-            <th>상태</th>
-            <th>수정</th>
-            <th>삭제</th>
-          </tr>
-        </thead>
-        <!-- 관리자 페이지에서는 tbody의 id를 adminScheduleListBody 로 유지 -->
-        <tbody id="adminScheduleListBody"></tbody>
-      </table>
+    
+    <!-- 리사이징 가능한 테이블 컨테이너 -->
+    <div id="scheduleTableContainer" class="resizable-table-container">
+        <div id="tableWrapper" class="table-wrapper">
+            <table id="editableScheduleTable" class="admin-table editable-table">
+                <thead>
+                    <tr>
+                        <th data-field="eta" class="resizable">ETA</th>
+                        <th data-field="etb" class="resizable">ETB</th>
+                        <th data-field="etd" class="resizable">ETD</th>
+                        <th data-field="regionName" class="resizable">지역</th>
+                        <th data-field="country" class="resizable">국가</th>
+                        <th data-field="imoNo" class="resizable">IMO 번호</th>
+                        <th data-field="hullNo" class="resizable">HULL 번호</th>
+                        <th data-field="shipName" class="resizable">SHIP NAME</th>
+                        <th data-field="managerId" class="resizable">담당자</th>
+                        <th data-field="company" class="resizable">업체</th>
+                        <th data-field="engineer" class="resizable">엔지니어</th>
+                        <th data-field="poNo" class="resizable">PO NO.</th>
+                        <th data-field="asType" class="resizable">AS 구분</th>
+                        <th data-field="startDate" class="resizable">시작일</th>
+                        <th data-field="endDate" class="resizable">종료일</th>
+                        <th data-field="departureDate" class="resizable">방선일</th>
+                        <th data-field="cancelReason" class="resizable">취소 사유</th>
+                        <th data-field="status" class="resizable">상태</th>
+                        <th data-field="details" class="resizable">상세</th>
+                        <th data-field="message" class="resizable">전달사항</th>
+                        <th data-field="unavailable" class="resizable">서비스 불가</th>
+                        <th data-field="action" class="resizable">작업</th>
+                    </tr>
+                </thead>
+                <tbody id="adminScheduleListBody"></tbody>
+            </table>
+        </div>
     </div>
-    <div style="margin-top:12px;">
-      <button onclick="downloadExcel()">엑셀 다운로드</button>
-      <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none" onchange="uploadExcel(event)"/>
-      <button onclick="document.getElementById('excelFileInput').click()">엑셀 업로드</button>
+    <div style="margin-top:12px; margin-bottom:50px;">
+        <button onclick="downloadExcel()" class="admin-btn">엑셀 다운로드</button>
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none" onchange="uploadExcel(event)"/>
+        <button onclick="document.getElementById('excelFileInput').click()" class="admin-btn">엑셀 업로드</button>
     </div>
-  </div>
+</div>
 
       <!-- 유저 목록 -->
       <div id="adminUserListPane" class="admin-pane">
@@ -563,6 +588,10 @@
         <label>IMO No.</label>
         <input type="text" id="modalIMONo"/>
       </div>
+<div class="modal-row">
+  <label>SHIPOWNER</label>
+  <input type="text" id="modalShipOwner"/>
+</div>
 <div class="modal-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
   <div style="flex: 1; min-width: 0;">
     <label style="font-size: 0.8em;">Ship Name</label>
