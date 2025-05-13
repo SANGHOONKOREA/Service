@@ -29,6 +29,8 @@ let currentMonthDate = new Date();
 let currentWeekDate = new Date();
 let editingScheduleId = null;
 let timeTableData = [];
+let modifiedCells = {}; // 수정된 셀 추적을 위한 객체
+let fullscreenMode = false; // 전체화면 모드 상태 변수
 
 /****************************************
  3) 페이지 로드 시 초기 작업
@@ -627,6 +629,7 @@ function nextWeek(){ currentWeekDate.setDate(currentWeekDate.getDate()+7); drawW
 /****************************************
  11) 스케줄 모달
 *****************************************/
+// 스케줄 모달 열기 함수 수정 (SHIPOWNER 필드 추가)
 function openModal(scheduleId = null, dateStr = null){
   editingScheduleId = scheduleId;
   document.getElementById("modal-background").style.display = "block";
@@ -649,6 +652,7 @@ function openModal(scheduleId = null, dateStr = null){
   btnComplete.style.display = "none"; // 추가
   document.getElementById("scheduleStatusLabel").textContent = "";
   document.getElementById("modalIMONo").value = "";
+  document.getElementById("modalShipOwner").value = ""; // SHIPOWNER 필드 초기화
   document.getElementById("modalLine").value = "";
   document.getElementById("modalHullNo").value = "";
   document.getElementById("modalRegion").value = "";
@@ -656,8 +660,6 @@ function openModal(scheduleId = null, dateStr = null){
   document.getElementById("modalMessage").value = "";
   document.getElementById("modalUnavailable").checked = false;
   
-
-
   // ETA, ETB, ETD 필드 초기화
   document.getElementById("modalETA").value = "";
   document.getElementById("modalETB").value = "";
@@ -706,6 +708,7 @@ if (scheduleId) {
   document.getElementById("modalStartDate").value = sch.startDate;
   document.getElementById("modalEndDate").value   = sch.endDate;
   document.getElementById("modalIMONo").value     = sch.imoNo || "";
+  document.getElementById("modalShipOwner").value = sch.shipOwner || ""; // SHIPOWNER 필드 추가
   document.getElementById("modalLine").value      = sch.lineName || "";
   document.getElementById("modalHullNo").value    = sch.hullNo || "";
   document.getElementById("modalRegion").value    = sch.regionName || "";
@@ -797,8 +800,7 @@ if (scheduleId) {
   
   // 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 초기 상태 설정
   toggleManagerField();
-}
-// 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
+}// 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
 // 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
 // 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
 function toggleManagerField() {
@@ -1221,10 +1223,12 @@ function completeService(){
 /****************************************
  14) 일정 추가 / 변경 / 삭제
 *****************************************/
+// saveSchedule 함수 수정 (SHIPOWNER 필드 추가)
 function saveSchedule(){
   const sDate = document.getElementById("modalStartDate").value;
   const eDate = document.getElementById("modalEndDate").value;
   const imoNo = document.getElementById("modalIMONo").value.trim();
+  const shipOwner = document.getElementById("modalShipOwner").value.trim(); // SHIPOWNER 필드 추가
   const shipName = document.getElementById("modalLine").value.trim();
   const hullNo = document.getElementById("modalHullNo").value.trim();
   const regionVal = document.getElementById("modalRegion").value.trim();
@@ -1244,21 +1248,21 @@ function saveSchedule(){
   const extraContainer = document.getElementById("additionalEngineerRows");
   const extraSelects = extraContainer.querySelectorAll("select");
   
-// saveSchedule() 함수 내의 managerId 처리 부분
-const managerId = isUnavailable ? 
-  '' : // 서비스 불가인 경우 빈 값으로 처리
-  document.getElementById("modalManagerSelect").value;
+  const managerId = isUnavailable ? 
+    '' : // 서비스 불가인 경우 빈 값으로 처리
+    document.getElementById("modalManagerSelect").value;
   
   if(editingScheduleId){
     var finalizeAnswer = confirm("일정변경 후에 최종 확정 할까요?");
     const idx = schedules.findIndex(x => x.id === editingScheduleId);
     if(idx > -1){
       if(!canAccessSchedule(schedules[idx])){ alert("수정 권한 없음"); return; }
-      const oldSch = { startDate: schedules[idx].startDate, endDate: schedules[idx].endDate };
+      const oldSch = { ...schedules[idx] };
       schedules[idx].userId = mainUserId;
       schedules[idx].startDate = sDate;
       schedules[idx].endDate = eDate;
       schedules[idx].imoNo = imoNo;
+      schedules[idx].shipOwner = shipOwner; // SHIPOWNER 필드 추가
       schedules[idx].lineName = shipName;
       schedules[idx].hullNo = hullNo;
       schedules[idx].regionName = regionVal;
@@ -1287,6 +1291,7 @@ const managerId = isUnavailable ?
             startDate: sDate,
             endDate: eDate,
             imoNo: imoNo,
+            shipOwner: shipOwner, // SHIPOWNER 필드 추가
             lineName: shipName,
             hullNo: hullNo,
             regionName: regionVal,
@@ -1322,6 +1327,7 @@ const managerId = isUnavailable ?
       startDate: sDate,
       endDate: eDate,
       imoNo: imoNo,
+      shipOwner: shipOwner, // SHIPOWNER 필드 추가
       lineName: shipName,
       hullNo: hullNo,
       regionName: regionVal,
@@ -1345,6 +1351,7 @@ const managerId = isUnavailable ?
           startDate: sDate,
           endDate: eDate,
           imoNo: imoNo,
+          shipOwner: shipOwner, // SHIPOWNER 필드 추가
           lineName: shipName,
           hullNo: hullNo,
           regionName: regionVal,
@@ -1872,6 +1879,160 @@ function formatExcelDateToYyyyMmDd(value) {
     return "";
   }
 }
+// saveSchedule 함수 수정 (SHIPOWNER 필드 추가)
+function saveSchedule(){
+  const sDate = document.getElementById("modalStartDate").value;
+  const eDate = document.getElementById("modalEndDate").value;
+  const imoNo = document.getElementById("modalIMONo").value.trim();
+  const shipOwner = document.getElementById("modalShipOwner").value.trim(); // SHIPOWNER 필드 추가
+  const shipName = document.getElementById("modalLine").value.trim();
+  const hullNo = document.getElementById("modalHullNo").value.trim();
+  const regionVal = document.getElementById("modalRegion").value.trim();
+  const workContent = document.getElementById("modalDetails").value.trim();
+  const transferMsg = document.getElementById("modalMessage").value.trim();
+  const isUnavailable = document.getElementById("modalUnavailable").checked;
+  
+  // ETA, ETB, ETD 값 가져오기
+  const etaVal = document.getElementById("modalETA").value;
+  const etbVal = document.getElementById("modalETB").value;
+  const etdVal = document.getElementById("modalETD").value;
+  
+  if(!sDate || !eDate){ alert("시작/종료일을 입력하세요"); return; }
+  if(sDate > eDate){ alert("종료일이 시작일보다 빠릅니다."); return; }
+  
+  let mainUserId = (document.getElementById("modalUserRow").style.display !== "none") ? document.getElementById("modalUserSelect").value : currentUid;
+  const extraContainer = document.getElementById("additionalEngineerRows");
+  const extraSelects = extraContainer.querySelectorAll("select");
+  
+  const managerId = isUnavailable ? 
+    '' : // 서비스 불가인 경우 빈 값으로 처리
+    document.getElementById("modalManagerSelect").value;
+  
+  if(editingScheduleId){
+    var finalizeAnswer = confirm("일정변경 후에 최종 확정 할까요?");
+    const idx = schedules.findIndex(x => x.id === editingScheduleId);
+    if(idx > -1){
+      if(!canAccessSchedule(schedules[idx])){ alert("수정 권한 없음"); return; }
+      const oldSch = { ...schedules[idx] };
+      schedules[idx].userId = mainUserId;
+      schedules[idx].startDate = sDate;
+      schedules[idx].endDate = eDate;
+      schedules[idx].imoNo = imoNo;
+      schedules[idx].shipOwner = shipOwner; // SHIPOWNER 필드 추가
+      schedules[idx].lineName = shipName;
+      schedules[idx].hullNo = hullNo;
+      schedules[idx].regionName = regionVal;
+      schedules[idx].details = workContent;
+      schedules[idx].message = transferMsg;
+      schedules[idx].unavailable = isUnavailable;
+      schedules[idx].managerId = managerId; // 서비스 불가 여부에 따라 결정된 managerId 사용
+      
+      // ETA, ETB, ETD 추가
+      schedules[idx].eta = etaVal;
+      schedules[idx].etb = etbVal;
+      schedules[idx].etd = etdVal;
+      
+      if(finalizeAnswer){
+        schedules[idx].status = "일정 변경 / 최종 확정";
+      } else {
+        schedules[idx].status = "일정 변경";
+      }
+      extraSelects.forEach(sel => {
+        const uid = sel.value;
+        if(uid){
+          const newId = Date.now() + Math.floor(Math.random() * 100000);
+          schedules.push({
+            id: newId,
+            userId: uid,
+            startDate: sDate,
+            endDate: eDate,
+            imoNo: imoNo,
+            shipOwner: shipOwner, // SHIPOWNER 필드 추가
+            lineName: shipName,
+            hullNo: hullNo,
+            regionName: regionVal,
+            details: workContent,
+            message: transferMsg,
+            unavailable: isUnavailable,
+            managerId: managerId, // 서비스 불가 여부에 따라 결정된 managerId 사용
+            eta: etaVal,
+            etb: etbVal,
+            etd: etdVal,
+            status: finalizeAnswer ? "일정 변경 / 최종 확정" : "일정 변경"
+          });
+        }
+      });
+      db.ref("schedules").set(schedules).then(() => { return loadAllData(); })
+      .then(() => {
+        recordHistory("일정 변경", currentUid, schedules[idx], oldSch);
+        if(finalizeAnswer){
+          alert("일정이 변경 및 최종 확정되었습니다.");
+        } else {
+          alert("일정이 변경되었습니다.");
+        }
+        if(confirm("이메일을 발송할까요?")){ sendEmailNotification(); }
+        closeModal();
+        refreshCalendar();
+      });
+    }
+  } else {
+    const newId = Date.now();
+    const newSch = {
+      id: newId,
+      userId: mainUserId,
+      startDate: sDate,
+      endDate: eDate,
+      imoNo: imoNo,
+      shipOwner: shipOwner, // SHIPOWNER 필드 추가
+      lineName: shipName,
+      hullNo: hullNo,
+      regionName: regionVal,
+      details: workContent,
+      message: transferMsg,
+      unavailable: isUnavailable,
+      managerId: managerId, // 서비스 불가 여부에 따라 결정된 managerId 사용
+      eta: etaVal,
+      etb: etbVal,
+      etd: etdVal,
+      status: "일정확정대기"
+    };
+    schedules.push(newSch);
+    extraSelects.forEach(sel => {
+      const uid = sel.value;
+      if(uid){
+        const newId2 = Date.now() + Math.floor(Math.random() * 100000);
+        schedules.push({
+          id: newId2,
+          userId: uid,
+          startDate: sDate,
+          endDate: eDate,
+          imoNo: imoNo,
+          shipOwner: shipOwner, // SHIPOWNER 필드 추가
+          lineName: shipName,
+          hullNo: hullNo,
+          regionName: regionVal,
+          details: workContent,
+          message: transferMsg,
+          unavailable: isUnavailable,
+          managerId: managerId, // 서비스 불가 여부에 따라 결정된 managerId 사용
+          eta: etaVal,
+          etb: etbVal,
+          etd: etdVal,
+          status: "일정확정대기"
+        });
+      }
+    });
+    db.ref("schedules").set(schedules).then(() => { return loadAllData(); })
+    .then(() => {
+      recordHistory("추가", currentUid, newSch);
+      alert("새 일정이 추가되었습니다.");
+      closeModal();
+      refreshCalendar();
+    });
+  }
+}
+
+// 엑셀 다운로드 함수 (수정)
 function downloadExcel() {
   // 내부 상태를 한글로 매핑하는 객체
   const statusToKorean = {
@@ -1890,7 +2051,10 @@ function downloadExcel() {
       sch.managerId && users[sch.managerId] ? users[sch.managerId].id : "";
     const engineerName =
       sch.userId && users[sch.userId] ? users[sch.userId].id : "";
-    // 상태 표시: unavailable이 true이면 "서비스 불가" 우선 적용
+    const company =
+      sch.userId && users[sch.userId] ? users[sch.userId].company : "";
+    
+    // 상태 표시
     let displayStatus = "";
     if (sch.unavailable) {
       displayStatus = "서비스 불가";
@@ -1913,21 +2077,39 @@ function downloadExcel() {
     } else {
       displayStatus = sch.status || "";
     }
+    
+    // 방선일 계산
+    let departureDate = sch.departureDate || "";
+    if (!departureDate && sch.endDate) {
+      const endDate = new Date(sch.endDate);
+      if (!isNaN(endDate.getTime())) {
+        endDate.setDate(endDate.getDate() + 1);
+        departureDate = endDate.toISOString().substring(0, 10);
+      }
+    }
+    
     return {
-      "시작일": sch.startDate,
-      "종료일": sch.endDate,
-      "선박명": sch.lineName || "",
-      "IMO 번호": sch.imoNo || "",
-      "Hull 번호": sch.hullNo || "",
+      "ETA": sch.eta || "",
+      "ETB": sch.etb || "",
+      "ETD": sch.etd || "",
       "지역": sch.regionName || "",
-      "작업내용": sch.details || "",
-      "상태": displayStatus,
-      "서비스 불가": sch.unavailable ? "true" : "false",
+      "국가": sch.country || "",
+      "IMO 번호": sch.imoNo || "",
+      "HULL 번호": sch.hullNo || "",
+      "SHIP NAME": sch.lineName || "",
+      "담당자": managerName,
+      "업체": company,
       "엔지니어": engineerName,
-      "본사 담당자": managerName,
-      "도착예정": sch.eta || "",
-      "접안예정": sch.etb || "",
-      "출항예정": sch.etd || ""
+      "PO NO.": sch.poNo || "",
+      "AS 구분": sch.asType || "",
+      "시작일": sch.startDate || "",
+      "종료일": sch.endDate || "",
+      "방선일": departureDate,
+      "취소 사유": sch.cancelReason || "",
+      "상태": displayStatus,
+      "상세": sch.details || "",
+      "전달사항": sch.message || "",
+      "서비스 불가": sch.unavailable ? "네" : "아니오"
     };
   });
 
@@ -1937,10 +2119,10 @@ function downloadExcel() {
   XLSX.utils.book_append_sheet(wb, ws, "스케줄");
 
   // --- 데이터 유효성 검사(드롭다운) 추가 ---
-  // 고정 목록: 상태, 서비스 불가
-  const statusList =
-    "일정 등록 대기,일정 등록,일정 변경,일정 취소,일정 확정,서비스 완료,서비스 불가";
-  const unavailableList = "true,false";
+  // 고정 목록: 상태, 서비스 불가, AS 구분
+  const statusList = "일정 등록 대기,일정 등록,일정 변경,일정 취소,일정 확정,서비스 완료,서비스 불가";
+  const unavailableList = "네,아니오";
+  const asTypeList = "유상,무상";
 
   // 엔지니어 목록: users 중 협력 계정의 이름 (중복 제거)
   let engineerOptions = [];
@@ -1962,25 +2144,23 @@ function downloadExcel() {
 
   // 데이터 유효성 검사 적용: 헤더는 1행에 있으므로 데이터는 2행부터 (예: 2행 ~ 1000행)
   ws["!dataValidation"] = [
+    // 상태 열
     {
-      sqref: "H2:H1000", // 상태 열 (H열)
+      sqref: "R2:R1000", 
       type: "list",
       formula1: "\"" + statusList + "\""
     },
+    // 서비스 불가 열
     {
-      sqref: "I2:I1000", // 서비스 불가 열 (I열)
+      sqref: "U2:U1000", 
       type: "list",
       formula1: "\"" + unavailableList + "\""
     },
+    // AS 구분 열
     {
-      sqref: "J2:J1000", // 엔지니어 열 (J열)
+      sqref: "M2:M1000", 
       type: "list",
-      formula1: "\"" + engineerList + "\""
-    },
-    {
-      sqref: "K2:K1000", // 본사 담당자 열 (K열)
-      type: "list",
-      formula1: "\"" + hqManagerList + "\""
+      formula1: "\"" + asTypeList + "\""
     }
   ];
   // --- 끝 ---
@@ -1988,6 +2168,35 @@ function downloadExcel() {
   XLSX.writeFile(wb, "스케줄_템플릿.xlsx");
 }
 
+
+// 초기화 시 호출할 함수
+// 테이블 초기화 함수 개선
+function initializeScheduleTable() {
+  // 스케줄 목록 페이지 초기화
+  const table = document.getElementById('editableScheduleTable');
+  if (!table) return; // 테이블이 아직 로드되지 않은 경우
+  
+  // 테이블 레이아웃 로드
+  loadTableLayout().then(() => {
+    // 컬럼 리사이징 설정
+    setupTableResizing();
+    
+    // ESC 키로 전체화면 모드 종료
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && fullscreenMode) {
+        toggleFullscreenTable();
+      }
+    });
+  });
+}
+
+// 페이지 로드 완료 후 실행
+window.addEventListener('DOMContentLoaded', function() {
+  // 필요한 초기화 함수 호출
+  setTimeout(initializeScheduleTable, 1000); // 1초 후 초기화 (DOM이 완전히 로드된 후)
+});
+
+// 엑셀 업로드 함수 수정
 function uploadExcel(event){
   const file = event.target.files[0];
   if (!file) return;
@@ -1998,57 +2207,79 @@ function uploadExcel(event){
     const sheetName = wb.SheetNames[0];
     const ws = wb.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(ws, { raw: true });
+    
+    // 한글 상태를 내부 상태로 매핑
     const koreanToStatus = {
-      "취소됨": "cancelled",
-      "최종 확정": "finalized",
+      "일정 취소": "cancelled",
+      "일정 확정": "finalized", 
       "일정 변경 / 최종 확정": "일정 변경 / 최종 확정",
-      "일정확정대기": "일정확정대기",
+      "일정 등록 대기": "일정 등록 대기",
       "서비스 완료": "completed",
       "정상": "normal"
     };
+    
     const newArr = jsonData.map(row => {
+      // 담당자(manager) 찾기
       let managerUid = "";
-      if (row.hqManager) {
+      if (row["담당자"]) {
         for (const uid in users) {
-          if (users[uid].role === "본사" && users[uid].id === row.hqManager) {
+          if ((users[uid].role === "본사" || users[uid].role === "관리자") && users[uid].id === row["담당자"]) {
             managerUid = uid;
             break;
           }
         }
       }
+      
+      // 엔지니어 찾기
       let engineerUid = "";
-      if (row.engineer) {
+      if (row["엔지니어"]) {
         for (const uid in users) {
-          if (users[uid].role === "협력" && users[uid].id === row.engineer) {
+          if (users[uid].role === "협력" && users[uid].id === row["엔지니어"]) {
             engineerUid = uid;
             break;
           }
         }
       }
-      const start = parseExcelDate(row.startDate);
-      const end   = parseExcelDate(row.endDate);
-      const unavailableBool = (row.unavailable === "네");
-      const statusInternal = koreanToStatus[row.status] || row.status || "normal";
+      
+      // 날짜 파싱
+      const start = parseExcelDate(row["시작일"]);
+      const end = parseExcelDate(row["종료일"]);
+      const eta = parseExcelDate(row["ETA"]);
+      const etb = parseExcelDate(row["ETB"]);
+      const etd = parseExcelDate(row["ETD"]);
+      const departureDate = parseExcelDate(row["방선일"]);
+      
+      // 서비스 불가 여부
+      const unavailableBool = (row["서비스 불가"] === "네");
+      
+      // 상태 변환
+      const statusInternal = koreanToStatus[row["상태"]] || row["상태"] || "normal";
+      
       return {
         id: Date.now() + Math.floor(Math.random() * 100000),
         startDate: start,
         endDate: end,
-        lineName: row.Ship_Name || "",
-        imoNo: row.IMO_No || "",
-        hullNo: row.Hull_No || "",
-        regionName: row.regionName || "",
-        details: row.details || "",
+        eta: eta,
+        etb: etb,
+        etd: etd,
+        lineName: row["SHIP NAME"] || "",
+        imoNo: row["IMO 번호"] || "",
+        hullNo: row["HULL 번호"] || "",
+        regionName: row["지역"] || "",
+        country: row["국가"] || "",
+        details: row["상세"] || "",
+        message: row["전달사항"] || "",
         status: statusInternal,
         userId: engineerUid,
         unavailable: unavailableBool,
         managerId: managerUid,
-        cancelReason: row.cancelReason || "",
-        // ETA, ETB, ETD 추가
-        eta: row.ETA || "",
-        etb: row.ETB || "",
-        etd: row.ETD || ""
+        cancelReason: row["취소 사유"] || "",
+        departureDate: departureDate,
+        poNo: row["PO NO."] || "",
+        asType: row["AS 구분"] || ""
       };
     });
+    
     schedules = newArr;
     db.ref("schedules").set(schedules)
       .then(() => {
@@ -2280,6 +2511,9 @@ function drawUserList() {
     tbody.appendChild(tr);
   });
 }
+
+
+// 스케줄 목록 그리기 함수 수정 - 레이아웃 로드 후 그리기
 function drawScheduleList() {
   const qStart = document.getElementById("adminQueryStart").value;
   const qEnd = document.getElementById("adminQueryEnd").value;
@@ -2295,109 +2529,1334 @@ function drawScheduleList() {
   // 시작일 기준 정렬
   filtered.sort((a, b) => a.startDate.localeCompare(b.startDate));
 
+  // 수정 추적 객체 초기화
+  modifiedCells = {};
+  
+  // 먼저 테이블 레이아웃 로드 시도
+  loadTableLayout().then(() => {
+    // 테이블 행 그리기
+    renderScheduleRows(filtered, tbody);
+    
+    // 테이블 컬럼 리사이징 설정
+    setupTableResizing();
+  });
+}
+// 단일 행 저장 함수 추가
+function saveScheduleRow(scheduleId) {
+  if (!modifiedCells[scheduleId]) {
+    alert("변경된 내용이 없습니다.");
+    return;
+  }
+  
+  const idx = schedules.findIndex(sch => sch.id == scheduleId);
+  if (idx === -1) {
+    alert("스케줄을 찾을 수 없습니다.");
+    return;
+  }
+  
+  // 변경 전 스케줄 복사 (히스토리 기록용)
+  const oldSchedule = { ...schedules[idx] };
+  
+  // 변경 사항 적용
+  for (let field in modifiedCells[scheduleId]) {
+    let value = modifiedCells[scheduleId][field];
+    
+    // 체크박스 값(unavailable) 처리
+    if (field === "unavailable") {
+      value = value === true || value === "true";
+    }
+    
+    schedules[idx][field] = value;
+  }
+  
+  // 히스토리 기록
+  recordHistory("개별 수정", currentUid, schedules[idx], oldSchedule);
+  
+  // Firebase에 저장
+  db.ref("schedules").set(schedules)
+    .then(() => {
+      alert("저장되었습니다.");
+      // 해당 행만 업데이트
+      delete modifiedCells[scheduleId];
+      return loadAllData();
+    })
+    .then(() => {
+      const row = document.querySelector(`tr[data-id="${scheduleId}"]`);
+      if (row) {
+        // 변경된 셀 하이라이트 제거
+        row.querySelectorAll('.cell-modified').forEach(cell => {
+          cell.classList.remove('cell-modified');
+        });
+      }
+    })
+    .catch(err => {
+      console.error("저장 오류:", err);
+      alert(`저장 중 오류가 발생했습니다: ${err.message}`);
+    });
+}
+// 방선일 자동 계산 함수
+function updateDepartureDate(tr) {
+  const startDateInput = tr.querySelector('[data-field="startDate"]');
+  const endDateInput = tr.querySelector('[data-field="endDate"]');
+  const departureDateInput = tr.querySelector('[data-field="departureDate"]');
+  
+  if (!endDateInput || !departureDateInput) return;
+  
+  const endDateValue = endDateInput.value;
+  if (!endDateValue) return;
+  
+  // 종료일 기준으로 방선일 계산 (종료일 + 1일)
+  const endDate = new Date(endDateValue);
+  if (!isNaN(endDate.getTime())) {
+    endDate.setDate(endDate.getDate() + 1);
+    const departureDate = endDate.toISOString().substring(0, 10);
+    
+    // 방선일 기존 값과 다르면 업데이트
+    if (departureDateInput.value !== departureDate) {
+      departureDateInput.value = departureDate;
+      trackChange(departureDateInput);
+    }
+  }
+}
+
+// 스케줄 행 렌더링 함수 개선
+function renderScheduleRows(filtered, tbody) {
+  // 이전에 작성된 행 모두 제거
+  tbody.innerHTML = "";
+  
+  // 필터링된 스케줄이 없는 경우 메시지 표시
+  if (filtered.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 22; // 모든 열을 차지하도록 설정
+    td.textContent = "조회 기간에 해당하는 스케줄이 없습니다.";
+    td.style.textAlign = "center";
+    td.style.padding = "20px";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+  
+  // 회사 목록 수집 (업체 드롭다운용)
+  const companies = new Set();
+  for (const uid in users) {
+    if (users[uid].company && users[uid].company.trim() !== '') {
+      companies.add(users[uid].company.trim());
+    }
+  }
+  const sortedCompanies = Array.from(companies).sort();
+  
+  // 필터링된 각 스케줄에 대해 행 생성
   filtered.forEach(sch => {
     const tr = document.createElement("tr");
-
-    // (a) 회사 (엔지니어 소속)
+    tr.setAttribute("data-id", sch.id);
+    
+    // 1. ETA (도착예정) - 날짜 선택기로 변경
+    const etaCell = document.createElement("td");
+    const etaInput = document.createElement("input");
+    etaInput.type = "date";
+    etaInput.value = sch.eta || "";
+    etaInput.setAttribute("data-field", "eta");
+    etaInput.setAttribute("data-original", sch.eta || "");
+    etaInput.style.width = "100%";
+    etaInput.style.padding = "4px";
+    etaInput.style.border = "1px solid #ddd";
+    etaInput.style.borderRadius = "4px";
+    etaInput.style.backgroundColor = "#fff";
+    etaInput.onchange = function() { trackChange(this); };
+    etaCell.appendChild(etaInput);
+    tr.appendChild(etaCell);
+    
+    // 2. ETB (접안예정) - 날짜 선택기로 변경
+    const etbCell = document.createElement("td");
+    const etbInput = document.createElement("input");
+    etbInput.type = "date";
+    etbInput.value = sch.etb || "";
+    etbInput.setAttribute("data-field", "etb");
+    etbInput.setAttribute("data-original", sch.etb || "");
+    etbInput.style.width = "100%";
+    etbInput.style.padding = "4px";
+    etbInput.style.border = "1px solid #ddd";
+    etbInput.style.borderRadius = "4px";
+    etbInput.style.backgroundColor = "#fff";
+    etbInput.onchange = function() { trackChange(this); };
+    etbCell.appendChild(etbInput);
+    tr.appendChild(etbCell);
+    
+    // 3. ETD (출항예정) - 날짜 선택기로 변경
+    const etdCell = document.createElement("td");
+    const etdInput = document.createElement("input");
+    etdInput.type = "date";
+    etdInput.value = sch.etd || "";
+    etdInput.setAttribute("data-field", "etd");
+    etdInput.setAttribute("data-original", sch.etd || "");
+    etdInput.style.width = "100%";
+    etdInput.style.padding = "4px";
+    etdInput.style.border = "1px solid #ddd";
+    etdInput.style.borderRadius = "4px";
+    etdInput.style.backgroundColor = "#fff";
+    etdInput.onchange = function() { trackChange(this); };
+    etdCell.appendChild(etdInput);
+    tr.appendChild(etdCell);
+    
+    // 4. 지역
+    const regionCell = document.createElement("td");
+    const regionInput = document.createElement("input");
+    regionInput.type = "text";
+    regionInput.value = sch.regionName || "";
+    regionInput.setAttribute("data-field", "regionName");
+    regionInput.setAttribute("data-original", sch.regionName || "");
+    regionInput.style.width = "100%";
+    regionInput.style.padding = "4px";
+    regionInput.style.border = "1px solid #ddd";
+    regionInput.style.borderRadius = "4px";
+    regionInput.style.backgroundColor = "#fff";
+    regionInput.onchange = function() { trackChange(this); };
+    regionCell.appendChild(regionInput);
+    tr.appendChild(regionCell);
+    
+    // 5. 국가 - 검색 및 선택 기능 추가
+    const countryCell = document.createElement("td");
+    const countryInputContainer = document.createElement("div");
+    countryInputContainer.style.position = "relative";
+    
+    const countryInput = document.createElement("input");
+    countryInput.type = "text";
+    countryInput.value = sch.country || "";
+    countryInput.setAttribute("data-field", "country");
+    countryInput.setAttribute("data-original", sch.country || "");
+    countryInput.setAttribute("placeholder", "국가 검색...");
+    countryInput.style.width = "100%";
+    countryInput.style.padding = "4px";
+    countryInput.style.border = "1px solid #ddd";
+    countryInput.style.borderRadius = "4px";
+    countryInput.style.backgroundColor = "#fff";
+    
+    // 국가 검색 드롭다운
+    const countryDropdown = document.createElement("div");
+    countryDropdown.className = "country-dropdown";
+    countryDropdown.style.display = "none";
+    countryDropdown.style.position = "absolute";
+    countryDropdown.style.width = "100%";
+    countryDropdown.style.maxHeight = "150px";
+    countryDropdown.style.overflowY = "auto";
+    countryDropdown.style.border = "1px solid #ddd";
+    countryDropdown.style.backgroundColor = "#fff";
+    countryDropdown.style.zIndex = "100";
+    countryDropdown.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+    
+    // 국가 검색 이벤트
+    countryInput.oninput = function() {
+      const filter = this.value.toLowerCase();
+      if(filter.length < 1) {
+        countryDropdown.style.display = "none";
+        return;
+      }
+      
+      countryDropdown.innerHTML = "";
+      const filtered = countryList.filter(country => 
+        country.toLowerCase().includes(filter)
+      );
+      
+      if(filtered.length === 0) {
+        countryDropdown.style.display = "none";
+        return;
+      }
+      
+      filtered.slice(0, 10).forEach(country => {
+        const item = document.createElement("div");
+        item.textContent = country;
+        item.style.padding = "5px";
+        item.style.cursor = "pointer";
+        item.style.transition = "background 0.2s";
+        
+        item.onmouseover = function() {
+          this.style.backgroundColor = "#f0f0f0";
+        };
+        
+        item.onmouseout = function() {
+          this.style.backgroundColor = "";
+        };
+        
+        item.onclick = function() {
+          countryInput.value = country;
+          countryDropdown.style.display = "none";
+          trackChange(countryInput);
+        };
+        
+        countryDropdown.appendChild(item);
+      });
+      
+      countryDropdown.style.display = "block";
+    };
+    
+    // 포커스 잃었을 때 드롭다운 숨기기
+    countryInput.onblur = function() {
+      setTimeout(() => {
+        countryDropdown.style.display = "none";
+        trackChange(this);
+      }, 200);
+    };
+    
+    countryInputContainer.appendChild(countryInput);
+    countryInputContainer.appendChild(countryDropdown);
+    countryCell.appendChild(countryInputContainer);
+    tr.appendChild(countryCell);
+    
+    // 6. IMO 번호
+    const imoCell = document.createElement("td");
+    const imoInput = document.createElement("input");
+    imoInput.type = "text";
+    imoInput.value = sch.imoNo || "";
+    imoInput.setAttribute("data-field", "imoNo");
+    imoInput.setAttribute("data-original", sch.imoNo || "");
+    imoInput.style.width = "100%";
+    imoInput.style.padding = "4px";
+    imoInput.style.border = "1px solid #ddd";
+    imoInput.style.borderRadius = "4px";
+    imoInput.style.backgroundColor = "#fff";
+    imoInput.onchange = function() { trackChange(this); };
+    imoCell.appendChild(imoInput);
+    tr.appendChild(imoCell);
+    
+    // 7. HULL 번호
+    const hullCell = document.createElement("td");
+    const hullInput = document.createElement("input");
+    hullInput.type = "text";
+    hullInput.value = sch.hullNo || "";
+    hullInput.setAttribute("data-field", "hullNo");
+    hullInput.setAttribute("data-original", sch.hullNo || "");
+    hullInput.style.width = "100%";
+    hullInput.style.padding = "4px";
+    hullInput.style.border = "1px solid #ddd";
+    hullInput.style.borderRadius = "4px";
+    hullInput.style.backgroundColor = "#fff";
+    hullInput.onchange = function() { trackChange(this); };
+    hullCell.appendChild(hullInput);
+    tr.appendChild(hullCell);
+    
+    // 8. SHIP NAME
+    const shipNameCell = document.createElement("td");
+    const shipNameInput = document.createElement("input");
+    shipNameInput.type = "text";
+    shipNameInput.value = sch.lineName || "";
+    shipNameInput.setAttribute("data-field", "lineName");
+    shipNameInput.setAttribute("data-original", sch.lineName || "");
+    shipNameInput.style.width = "100%";
+    shipNameInput.style.padding = "4px";
+    shipNameInput.style.border = "1px solid #ddd";
+    shipNameInput.style.borderRadius = "4px";
+    shipNameInput.style.backgroundColor = "#fff";
+    shipNameInput.onchange = function() { trackChange(this); };
+    shipNameCell.style.minWidth = "200px";
+    shipNameCell.style.maxWidth = "600px"; 
+    shipNameCell.style.width = "300px";
+    shipNameCell.appendChild(shipNameInput);
+    tr.appendChild(shipNameCell);
+    
+    // 9. 담당자 (select 박스)
+    const managerCell = document.createElement("td");
+    const managerSelect = document.createElement("select");
+    managerSelect.setAttribute("data-field", "managerId");
+    managerSelect.setAttribute("data-original", sch.managerId || "");
+    managerSelect.style.width = "100%";
+    managerSelect.style.padding = "4px";
+    managerSelect.style.border = "1px solid #ddd";
+    managerSelect.style.borderRadius = "4px";
+    managerSelect.style.backgroundColor = "#fff";
+    managerSelect.onchange = function() { trackChange(this); };
+    
+    // 담당자 목록 추가
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "-- 선택 --";
+    managerSelect.appendChild(emptyOption);
+    
+    for (const uid in users) {
+      if (users[uid].role === "본사" || users[uid].role === "관리자") {
+        const option = document.createElement("option");
+        option.value = uid;
+        option.textContent = users[uid].id || "담당자";
+        
+        if (uid === sch.managerId) {
+          option.selected = true;
+        }
+        
+        managerSelect.appendChild(option);
+      }
+    }
+    
+    managerCell.appendChild(managerSelect);
+    tr.appendChild(managerCell);
+    
+    // 10. 업체 (직접 입력에서 드롭다운으로 변경)
+    const companyCell = document.createElement("td");
+    const companySelect = document.createElement("select");
+    companySelect.setAttribute("data-field", "company");
+    
+    // 현재 업체 값 가져오기
     const userObj = users[sch.userId] || {};
-    const tdCompany = document.createElement("td");
-    tdCompany.textContent = userObj.company || "(업체 미지정)";
-    tr.appendChild(tdCompany);
-
-    // (b) 엔지니어
-    const tdEngineer = document.createElement("td");
-    tdEngineer.textContent = userObj.id || "";
-    tr.appendChild(tdEngineer);
-
-    // (c) 기간
-    const tdPeriod = document.createElement("td");
-    tdPeriod.textContent = `${sch.startDate} ~ ${sch.endDate}`;
-    tr.appendChild(tdPeriod);
-
-    // (d) 선박명
-    const tdShipName = document.createElement("td");
-    tdShipName.textContent = sch.lineName || "";
-    tr.appendChild(tdShipName);
-
-    // (e) IMO 번호
-    const tdIMONo = document.createElement("td");
-    tdIMONo.textContent = sch.imoNo || "";
-    tr.appendChild(tdIMONo);
-
-    // (f) Hull 번호
-    const tdHullNo = document.createElement("td");
-    tdHullNo.textContent = sch.hullNo || "";
-    tr.appendChild(tdHullNo);
-
-    // (g) 지역
-    const tdRegion = document.createElement("td");
-    tdRegion.textContent = sch.regionName || "";
-    tr.appendChild(tdRegion);
-
-    // (h) 본사 담당자
-    const tdManager = document.createElement("td");
-    if (sch.managerId && users[sch.managerId]) {
-      tdManager.textContent = users[sch.managerId].id || "";
-    } else {
-      tdManager.textContent = "";
+    const currentCompany = userObj.company || "";
+    companySelect.setAttribute("data-original", currentCompany);
+    
+    companySelect.style.width = "100%";
+    companySelect.style.padding = "4px";
+    companySelect.style.border = "1px solid #ddd";
+    companySelect.style.borderRadius = "4px";
+    companySelect.style.backgroundColor = "#fff";
+    
+    // 빈 옵션 추가
+    const emptyCompOption = document.createElement("option");
+    emptyCompOption.value = "";
+    emptyCompOption.textContent = "-- 선택 --";
+    companySelect.appendChild(emptyCompOption);
+    
+    // 회사 목록 추가
+    sortedCompanies.forEach(company => {
+      const option = document.createElement("option");
+      option.value = company;
+      option.textContent = company;
+      
+      if (company === currentCompany) {
+        option.selected = true;
+      }
+      
+      companySelect.appendChild(option);
+    });
+    
+    // 업체 변경 시 엔지니어 목록 필터링
+    companySelect.onchange = function() {
+      const selectedCompany = this.value;
+      
+      // 엔지니어 셀렉트 박스 참조
+      const engineerSelect = tr.querySelector('[data-field="userId"]');
+      if (!engineerSelect) return;
+      
+      // 현재 선택된 엔지니어 UID 기억
+      const currentEngineerUid = engineerSelect.value;
+      
+      // 엔지니어 목록 재구성
+      engineerSelect.innerHTML = "";
+      
+      // 빈 옵션 추가
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = "-- 선택 --";
+      engineerSelect.appendChild(emptyOption);
+      
+      // 필터링된 엔지니어 옵션 추가
+      let engineerOptions = [];
+      for (const uid in users) {
+        if (users[uid].role === "협력") {
+          if (!selectedCompany || users[uid].company === selectedCompany) {
+            engineerOptions.push({
+              uid: uid,
+              name: users[uid].id || "NONAME",
+              company: users[uid].company || "업체 미지정"
+            });
+          }
+        }
+      }
+      
+      // 이름 기준으로 정렬
+      engineerOptions.sort((a, b) => a.name.localeCompare(b.name));
+      
+      // 엔지니어 옵션 추가
+      engineerOptions.forEach(optData => {
+        const option = document.createElement("option");
+        option.value = optData.uid;
+        option.textContent = `${optData.name} (${optData.company})`;
+        
+        if (optData.uid === currentEngineerUid) {
+          option.selected = true;
+        }
+        
+        engineerSelect.appendChild(option);
+      });
+      
+      // 변경 추적
+      trackChange(this);
+    };
+    
+    companyCell.appendChild(companySelect);
+    tr.appendChild(companyCell);
+    
+    // 11. 엔지니어 (select 박스)
+    const engineerCell = document.createElement("td");
+    const engineerSelect = document.createElement("select");
+    engineerSelect.setAttribute("data-field", "userId");
+    engineerSelect.setAttribute("data-original", sch.userId || "");
+    engineerSelect.style.width = "100%";
+    engineerSelect.style.padding = "4px";
+    engineerSelect.style.border = "1px solid #ddd";
+    engineerSelect.style.borderRadius = "4px";
+    engineerSelect.style.backgroundColor = "#fff";
+    engineerSelect.onchange = function() { trackChange(this); };
+    
+    // 엔지니어 목록 추가
+    const emptyEngOption = document.createElement("option");
+    emptyEngOption.value = "";
+    emptyEngOption.textContent = "-- 선택 --";
+    engineerSelect.appendChild(emptyEngOption);
+    
+    // 엔지니어 옵션 목록 생성
+    let engineerOptions = [];
+    for (const uid in users) {
+      if (users[uid].role === "협력") {
+        if (!currentCompany || users[uid].company === currentCompany) {
+          engineerOptions.push({
+            uid: uid,
+            name: users[uid].id || "NONAME",
+            company: users[uid].company || "업체 미지정"
+          });
+        }
+      }
     }
-    tr.appendChild(tdManager);
-
-    // (i) 작업내용
-    const tdDetails = document.createElement("td");
-    tdDetails.textContent = sch.details || "";
-    tr.appendChild(tdDetails);
-
-    // (j) 서비스 불가 (unavailable)
-    const tdUnavail = document.createElement("td");
-    tdUnavail.textContent = sch.unavailable ? "true" : "false";
-    tr.appendChild(tdUnavail);
-
-    // (k) 상태 (status) – unavailable이 true이면 우선 "서비스 불가"로 표시
-    const tdStatus = document.createElement("td");
-    if (sch.unavailable) {
-      tdStatus.textContent = "서비스 불가";
-    } else if (sch.status === "cancelled") {
-      tdStatus.textContent = "일정 취소";
-    } else if (sch.status === "completed") {
-      tdStatus.textContent = "서비스 완료";
-    } else if (
-      sch.status === "finalized" ||
-      sch.status === "일정 변경 / 최종 확정" ||
-      sch.status === "일정 확정"
-    ) {
-      tdStatus.textContent = "일정 확정";
-    } else if (sch.status === "일정 등록 대기") {
-      tdStatus.textContent = "일정 등록 대기";
-    } else if (sch.status === "일정 등록") {
-      tdStatus.textContent = "일정 등록";
-    } else if (sch.status === "일정 변경") {
-      tdStatus.textContent = "일정 변경";
-    } else {
-      tdStatus.textContent = sch.status || "";
-    }
-    tr.appendChild(tdStatus);
-
-    // (l) 수정 버튼
-    const tdEdit = document.createElement("td");
-    const editBtn = document.createElement("button");
-    editBtn.className = "admin-btn";
-    editBtn.textContent = "수정";
-    editBtn.onclick = () => openModal(sch.id);
-    tdEdit.appendChild(editBtn);
-    tr.appendChild(tdEdit);
-
-    // (m) 삭제 버튼
-    const tdDelete = document.createElement("td");
-    const delBtn = document.createElement("button");
-    delBtn.className = "admin-btn";
-    delBtn.textContent = "삭제";
-    delBtn.onclick = () => deleteAdminSchedule(sch.id);
-    tdDelete.appendChild(delBtn);
-    tr.appendChild(tdDelete);
-
+    
+    // 이름 기준으로 정렬
+    engineerOptions.sort((a, b) => a.name.localeCompare(b.name));
+    
+    // 엔지니어 옵션 추가
+    engineerOptions.forEach(optData => {
+      const option = document.createElement("option");
+      option.value = optData.uid;
+      option.textContent = `${optData.name} (${optData.company})`;
+      
+      if (optData.uid === sch.userId) {
+        option.selected = true;
+      }
+      
+      engineerSelect.appendChild(option);
+    });
+    
+    engineerCell.appendChild(engineerSelect);
+    tr.appendChild(engineerCell);
+    
+    // 12. PO NO.
+    const poNoCell = document.createElement("td");
+    const poNoInput = document.createElement("input");
+    poNoInput.type = "text";
+    poNoInput.value = sch.poNo || "";
+    poNoInput.setAttribute("data-field", "poNo");
+    poNoInput.setAttribute("data-original", sch.poNo || "");
+    poNoInput.style.width = "100%";
+    poNoInput.style.padding = "4px";
+    poNoInput.style.border = "1px solid #ddd";
+    poNoInput.style.borderRadius = "4px";
+    poNoInput.style.backgroundColor = "#fff";
+    poNoInput.onchange = function() { trackChange(this); };
+    poNoCell.appendChild(poNoInput);
+    tr.appendChild(poNoCell);
+    
+    // 13. AS 구분
+    const asTypeCell = document.createElement("td");
+    const asTypeSelect = document.createElement("select");
+    asTypeSelect.setAttribute("data-field", "asType");
+    asTypeSelect.setAttribute("data-original", sch.asType || "");
+    asTypeSelect.style.width = "100%";
+    asTypeSelect.style.padding = "4px";
+    asTypeSelect.style.border = "1px solid #ddd";
+    asTypeSelect.style.borderRadius = "4px";
+    asTypeSelect.style.backgroundColor = "#fff";
+    asTypeSelect.onchange = function() { trackChange(this); };
+    
+    // AS 구분 옵션 추가
+    const asOptions = ["", "유상", "무상"];
+    asOptions.forEach(opt => {
+      const option = document.createElement("option");
+      option.value = opt;
+      option.textContent = opt || "-- 선택 --";
+      
+      if (opt === sch.asType) {
+        option.selected = true;
+      }
+      
+      asTypeSelect.appendChild(option);
+    });
+    
+    asTypeCell.appendChild(asTypeSelect);
+    tr.appendChild(asTypeCell);
+    
+    // 14. 시작일
+    const startDateCell = document.createElement("td");
+    const startDateInput = document.createElement("input");
+    startDateInput.type = "date";
+    startDateInput.value = sch.startDate || "";
+    startDateInput.setAttribute("data-field", "startDate");
+    startDateInput.setAttribute("data-original", sch.startDate || "");
+    startDateInput.style.width = "100%";
+    startDateInput.style.padding = "4px";
+    startDateInput.style.border = "1px solid #ddd";
+    startDateInput.style.borderRadius = "4px";
+    startDateInput.style.backgroundColor = "#fff";
+    startDateInput.onchange = function() { 
+      trackChange(this);
+      // 종료일과 방선일 관계 업데이트
+      updateDepartureDate(tr);
+    };
+    startDateCell.appendChild(startDateInput);
+    tr.appendChild(startDateCell);
+    
+    // 15. 종료일
+    const endDateCell = document.createElement("td");
+    const endDateInput = document.createElement("input");
+    endDateInput.type = "date";
+    endDateInput.value = sch.endDate || "";
+    endDateInput.setAttribute("data-field", "endDate");
+    endDateInput.setAttribute("data-original", sch.endDate || "");
+    endDateInput.style.width = "100%";
+    endDateInput.style.padding = "4px";
+    endDateInput.style.border = "1px solid #ddd";
+    endDateInput.style.borderRadius = "4px";
+    endDateInput.style.backgroundColor = "#fff";
+    endDateInput.onchange = function() { 
+      trackChange(this);
+      // 종료일과 방선일 관계 업데이트
+      updateDepartureDate(tr);
+    };
+    endDateCell.appendChild(endDateInput);
+    tr.appendChild(endDateCell);
+    
+    // 16. 방선일
+    const departureDateCell = document.createElement("td");
+    const departureDateInput = document.createElement("input");
+    departureDateInput.type = "date";
+    departureDateInput.value = sch.departureDate || "";
+    departureDateInput.setAttribute("data-field", "departureDate");
+    departureDateInput.setAttribute("data-original", sch.departureDate || "");
+    departureDateInput.style.width = "100%";
+    departureDateInput.style.padding = "4px";
+    departureDateInput.style.border = "1px solid #ddd";
+    departureDateInput.style.borderRadius = "4px";
+    departureDateInput.style.backgroundColor = "#fff";
+    departureDateInput.onchange = function() { trackChange(this); };
+    departureDateCell.appendChild(departureDateInput);
+    tr.appendChild(departureDateCell);
+    
+    // 17. 취소 사유
+    const cancelReasonCell = document.createElement("td");
+    const cancelReasonInput = document.createElement("input");
+    cancelReasonInput.type = "text";
+    cancelReasonInput.value = sch.cancelReason || "";
+    cancelReasonInput.setAttribute("data-field", "cancelReason");
+    cancelReasonInput.setAttribute("data-original", sch.cancelReason || "");
+    cancelReasonInput.style.width = "100%";
+    cancelReasonInput.style.padding = "4px";
+    cancelReasonInput.style.border = "1px solid #ddd";
+    cancelReasonInput.style.borderRadius = "4px";
+    cancelReasonInput.style.backgroundColor = "#fff";
+    cancelReasonInput.onchange = function() { trackChange(this); };
+    cancelReasonCell.appendChild(cancelReasonInput);
+    tr.appendChild(cancelReasonCell);
+    
+    // 18. 상태
+    const statusCell = document.createElement("td");
+    const statusSelect = document.createElement("select");
+    statusSelect.className = "status-select";
+    statusSelect.setAttribute("data-field", "status");
+    statusSelect.setAttribute("data-original", sch.status || "");
+    statusSelect.style.width = "100%";
+    statusSelect.style.padding = "4px";
+    statusSelect.style.border = "1px solid #ddd";
+    statusSelect.style.borderRadius = "4px";
+    statusSelect.style.backgroundColor = "#fff";
+    statusSelect.onchange = function() { trackChange(this); };
+    
+    // 상태 옵션 추가
+    const statusOptions = [
+      "", "일정 등록 대기", "일정 등록", "일정 변경", "일정 취소", 
+      "일정 확정", "일정 변경 / 최종 확정", "서비스 완료"
+    ];
+    statusOptions.forEach(opt => {
+      const option = document.createElement("option");
+      option.value = opt;
+      option.textContent = opt || "-- 선택 --";
+      
+      if (opt === sch.status) {
+        option.selected = true;
+      }
+      
+      statusSelect.appendChild(option);
+    });
+    
+    statusCell.appendChild(statusSelect);
+    tr.appendChild(statusCell);
+    
+    // 19. 상세
+    const detailsCell = document.createElement("td");
+    const detailsTextarea = document.createElement("textarea");
+    detailsTextarea.value = sch.details || "";
+    detailsTextarea.setAttribute("data-field", "details");
+    detailsTextarea.setAttribute("data-original", sch.details || "");
+    detailsTextarea.style.width = "100%";
+    detailsTextarea.style.padding = "4px";
+    detailsTextarea.style.border = "1px solid #ddd";
+    detailsTextarea.style.borderRadius = "4px";
+    detailsTextarea.style.backgroundColor = "#fff";
+    detailsTextarea.style.minHeight = "60px";
+    detailsTextarea.style.resize = "vertical";
+    detailsTextarea.onchange = function() { trackChange(this); };
+    detailsCell.style.minWidth = "200px";
+    detailsCell.style.maxWidth = "600px"; 
+    detailsCell.style.width = "300px";
+    detailsCell.appendChild(detailsTextarea);
+    tr.appendChild(detailsCell);
+    
+    // 20. 전달사항
+    const messageCell = document.createElement("td");
+    const messageTextarea = document.createElement("textarea");
+    messageTextarea.value = sch.message || "";
+    messageTextarea.setAttribute("data-field", "message");
+    messageTextarea.setAttribute("data-original", sch.message || "");
+    messageTextarea.style.width = "100%";
+    messageTextarea.style.padding = "4px";
+    messageTextarea.style.border = "1px solid #ddd";
+    messageTextarea.style.borderRadius = "4px";
+    messageTextarea.style.backgroundColor = "#fff";
+    messageTextarea.style.minHeight = "60px";
+    messageTextarea.style.resize = "vertical";
+    messageTextarea.onchange = function() { trackChange(this); };
+    messageCell.style.minWidth = "200px";
+    messageCell.style.maxWidth = "600px"; 
+    messageCell.style.width = "300px";
+    messageCell.appendChild(messageTextarea);
+    tr.appendChild(messageCell);
+    
+    // 21. 서비스 불가 (체크박스)
+    const unavailableCell = document.createElement("td");
+    const unavailableCheckbox = document.createElement("input");
+    unavailableCheckbox.type = "checkbox";
+    unavailableCheckbox.checked = !!sch.unavailable;
+    unavailableCheckbox.className = "schedule-checkbox";
+    unavailableCheckbox.setAttribute("data-field", "unavailable");
+    unavailableCheckbox.setAttribute("data-original", sch.unavailable ? "true" : "false");
+    unavailableCheckbox.style.width = "20px";
+    unavailableCheckbox.style.height = "20px";
+    unavailableCheckbox.onchange = function() { trackChange(this); };
+    unavailableCell.style.textAlign = "center";
+    unavailableCell.appendChild(unavailableCheckbox);
+    tr.appendChild(unavailableCell);
+    
+    // 22. 작업 (버튼 영역)
+    const actionCell = document.createElement("td");
+    
+    // 저장 버튼
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "저장";
+    saveBtn.className = "row-action-btn";
+    saveBtn.onclick = function() { saveScheduleRow(sch.id); };
+    actionCell.appendChild(saveBtn);
+    
+    // 삭제 버튼
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "삭제";
+    deleteBtn.className = "row-action-btn delete";
+    deleteBtn.onclick = function() { 
+      if (confirm("이 스케줄을 삭제하시겠습니까?")) {
+        deleteAdminSchedule(sch.id);
+      }
+    };
+    actionCell.appendChild(deleteBtn);
+    
+    tr.appendChild(actionCell);
+    
+    // 행을 테이블에 추가
     tbody.appendChild(tr);
   });
+  
+  // 테이블 스크롤 기능 개선
+  const tableContainer = document.getElementById('scheduleTableContainer');
+  if (tableContainer) {
+    // 스크롤바 스타일 개선
+    tableContainer.style.overflowX = "auto";
+    tableContainer.style.maxWidth = "100%";
+    tableContainer.style.width = "100%";
+    
+    // 테이블 최소 넓이 설정
+    const table = document.getElementById('editableScheduleTable');
+    if (table) {
+      table.style.minWidth = "100%";
+      table.style.width = "auto";
+    }
+    
+    // 각 th 요소에 리사이징 핸들 추가 및 스타일 조정
+    const ths = document.querySelectorAll('#editableScheduleTable th');
+    ths.forEach(th => {
+      th.style.position = "relative";
+      
+      // 리사이징 핸들이 있는지 확인
+      if (!th.querySelector('.column-resizer')) {
+        const resizer = document.createElement('div');
+        resizer.className = 'column-resizer';
+        resizer.style.position = "absolute";
+        resizer.style.top = "0";
+        resizer.style.right = "0";
+        resizer.style.bottom = "0";
+        resizer.style.width = "5px";
+        resizer.style.cursor = "col-resize";
+        resizer.style.backgroundColor = "transparent";
+        
+        resizer.addEventListener('mousedown', function(e) {
+          const startX = e.pageX;
+          const startWidth = th.offsetWidth;
+          
+          function onMouseMove(e) {
+            const width = Math.max(50, startWidth + (e.pageX - startX));
+            th.style.width = width + 'px';
+            th.style.minWidth = width + 'px';
+            
+            // 저장 및 복원을 위한 데이터 속성 설정
+            const fieldName = th.getAttribute('data-field');
+            if (fieldName) {
+              try {
+                const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+                columnWidths[fieldName] = width;
+                localStorage.setItem('tableColumnWidths', JSON.stringify(columnWidths));
+              } catch (err) {
+                console.error('열 너비 저장 오류:', err);
+              }
+            }
+          }
+          
+          function onMouseUp() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+          }
+          
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+          document.body.style.cursor = 'col-resize';
+          e.preventDefault();
+        });
+        
+        th.appendChild(resizer);
+      }
+      
+      // 저장된 너비 적용
+      const fieldName = th.getAttribute('data-field');
+      if (fieldName) {
+        try {
+          const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+          if (columnWidths[fieldName]) {
+            th.style.width = columnWidths[fieldName] + 'px';
+            th.style.minWidth = columnWidths[fieldName] + 'px';
+          }
+        } catch (err) {
+          console.error('열 너비 로드 오류:', err);
+        }
+      }
+    });
+  }
+}
+
+// 새 스케줄 행 추가 함수
+function addNewScheduleRow() {
+  // 새 스케줄 ID 생성
+  const newId = Date.now();
+  
+  // 현재 날짜 기반의 시작일/종료일 설정
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  
+  const startDate = today.toISOString().slice(0, 10);
+  const endDate = tomorrow.toISOString().slice(0, 10);
+  
+  // 기본 스케줄 객체 생성
+  const newSchedule = {
+    id: newId,
+    startDate: startDate,
+    endDate: endDate,
+    status: "일정 등록 대기",
+    unavailable: false
+  };
+  
+  // 스케줄 배열에 추가
+  schedules.push(newSchedule);
+  
+  // 테이블 다시 그리기
+  drawScheduleList();
+  
+  // 새 행으로 스크롤
+  setTimeout(() => {
+    const newRow = document.querySelector(`tr[data-id="${newId}"]`);
+    if (newRow) {
+      newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      newRow.style.animation = 'highlight 2s';
+    }
+  }, 100);
+  
+  return newId;
+}
+// 변경 내용 추적 함수 수정
+function trackChange(element) {
+  const field = element.getAttribute("data-field");
+  const original = element.getAttribute("data-original");
+  let currentValue;
+  
+  if (element.type === "checkbox") {
+    currentValue = element.checked;
+  } else if (element.tagName === "SELECT") {
+    currentValue = element.value;
+  } else if (element.tagName === "INPUT") {
+    currentValue = element.value;
+  } else {
+    currentValue = element.textContent.trim();
+  }
+  
+  // tr 엘리먼트를 찾기 위해 부모 엘리먼트 탐색
+  let parentNode = element;
+  while (parentNode && parentNode.tagName !== "TR") {
+    parentNode = parentNode.parentNode;
+  }
+  
+  if (!parentNode) {
+    console.error("부모 TR 요소를 찾을 수 없습니다.");
+    return;
+  }
+  
+  // 원래 값과 비교하여 변경 여부 확인
+  let isChanged = false;
+  if (element.type === "checkbox") {
+    isChanged = (original === "true" && !currentValue) || (original === "false" && currentValue);
+  } else {
+    isChanged = String(original) !== String(currentValue);
+  }
+  
+  // 변경된 경우 셀 하이라이트 및 수정 객체에 추가
+  const scheduleId = parentNode.getAttribute("data-id");
+  
+  if (isChanged) {
+    element.classList.add("cell-modified");
+    
+    if (!modifiedCells[scheduleId]) {
+      modifiedCells[scheduleId] = {};
+    }
+    
+    modifiedCells[scheduleId][field] = currentValue;
+  } else {
+    element.classList.remove("cell-modified");
+    
+    if (modifiedCells[scheduleId] && modifiedCells[scheduleId][field]) {
+      delete modifiedCells[scheduleId][field];
+      
+      // 해당 스케줄의 모든 변경사항이 취소된 경우 객체에서 제거
+      if (Object.keys(modifiedCells[scheduleId]).length === 0) {
+        delete modifiedCells[scheduleId];
+      }
+    }
+  }
+}
+
+// 전체 변경 사항 저장 함수
+// 기존 함수 확장: 변경사항 저장 시 테이블 폭도 함께 저장
+// 변경사항 저장 함수 수정 - 테이블 레이아웃 저장 포함
+function saveScheduleTable() {
+  // 변경된 내용이 없는 경우
+  if (Object.keys(modifiedCells).length === 0) {
+    // 테이블 레이아웃만 저장
+    saveTableLayout();
+    alert("스케줄 변경사항은 없지만, 테이블 레이아웃이 저장되었습니다.");
+    return;
+  }
+  
+  // 변경 내용 확인
+  if (!confirm(`총 ${Object.keys(modifiedCells).length}개의 일정이 변경됩니다. 저장하시겠습니까?`)) {
+    return;
+  }
+  
+  // 테이블 레이아웃 저장
+  saveTableLayout();
+  
+  // 이하 기존 코드 (스케줄 변경사항 저장)
+  let changeCount = 0;
+  let hasErrors = false;
+  
+  // 스케줄 배열 순회하며 변경사항 적용
+  for (let scheduleId in modifiedCells) {
+    const idx = schedules.findIndex(sch => sch.id == scheduleId);
+    
+    if (idx === -1) {
+      console.error(`스케줄 ID ${scheduleId}를 찾을 수 없습니다.`);
+      hasErrors = true;
+      continue;
+    }
+    
+    // 변경 전 스케줄 복사 (히스토리 기록용)
+    const oldSch = { ...schedules[idx] };
+    
+    // 변경 사항 적용
+    for (let field in modifiedCells[scheduleId]) {
+      let value = modifiedCells[scheduleId][field];
+      
+      // 체크박스 값(unavailable) 처리
+      if (field === "unavailable") {
+        value = value === true || value === "true";
+      }
+      
+      schedules[idx][field] = value;
+    }
+    
+    // 히스토리 기록
+    recordHistory("일괄 수정", currentUid, schedules[idx], oldSch);
+    changeCount++;
+  }
+  
+  // Firebase에 변경 내용 저장
+  db.ref("schedules").set(schedules)
+    .then(() => {
+      alert(`${changeCount}개의 일정과 테이블 레이아웃이 성공적으로 저장되었습니다.`);
+      modifiedCells = {}; // 변경 내용 초기화
+      return loadAllData();
+    })
+    .then(() => {
+      drawScheduleList(); // 목록 다시 그리기
+      refreshCalendar(); // 달력 새로고침
+    })
+    .catch(err => {
+      console.error("저장 오류:", err);
+      alert(`저장 중 오류가 발생했습니다: ${err.message}`);
+    });
+}// 테이블 레이아웃 저장 (변경사항 저장 버튼 클릭 시 호출)
+function saveTableLayout() {
+  try {
+    // 로컬 스토리지에서 열 너비 정보 가져오기
+    const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+    
+    // 테이블 레이아웃 데이터 생성
+    const tableLayout = {
+      columnWidths: columnWidths,
+      lastUpdate: new Date().toISOString()
+    };
+    
+    // Firebase에 저장 (db 객체가 정의되어 있다고 가정)
+    db.ref("tableLayout").set(tableLayout)
+      .then(() => {
+        console.log("테이블 레이아웃 저장 완료");
+      })
+      .catch(err => {
+        console.error("테이블 레이아웃 저장 오류:", err);
+      });
+  } catch (err) {
+    console.error("테이블 레이아웃 저장 준비 오류:", err);
+  }
+}
+// 테이블 레이아웃 로드 함수
+function loadTableLayout() {
+  return db.ref("tableLayout").once("value")
+    .then(snap => {
+      if (snap.exists()) {
+        const layout = snap.val();
+        if (layout.columnWidths) {
+          window.tableState = window.tableState || {};
+          window.tableState.columnWidths = layout.columnWidths;
+          
+          // 로컬 스토리지에도 저장
+          localStorage.setItem('tableColumnWidths', JSON.stringify(layout.columnWidths));
+          
+          console.log("테이블 레이아웃 로드 완료");
+          return true;
+        }
+      }
+      return false;
+    })
+    .catch(err => {
+      console.error("테이블 레이아웃 로드 오류:", err);
+      return false;
+    });
+}
+
+
+// 테이블 컬럼 리사이징 설정
+function setupTableResizing() {
+  const resizableThs = document.querySelectorAll('th.resizable');
+  
+  resizableThs.forEach(th => {
+    // 이미 이벤트 리스너가 설정되어 있으면 건너뛰기
+    if (th.getAttribute('data-resize-initialized') === 'true') {
+      return;
+    }
+    
+    // 각 th 요소에 대해 클로저를 사용하여 변수 범위를 보존
+    let startX, startWidth;
+    
+    const resizer = document.createElement('div');
+    resizer.classList.add('column-resizer');
+    th.appendChild(resizer);
+    
+    resizer.addEventListener('mousedown', function(e) {
+      startX = e.pageX;
+      startWidth = th.offsetWidth;
+      
+      // 전역 이벤트 리스너 추가
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+      
+      // 텍스트 선택 방지
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    });
+    
+    // 클로저 내부에서 접근 가능한 onMouseMove 함수
+    function onMouseMove(e) {
+      // 최소 너비보다 작아지지 않도록 제한
+      const minWidth = 50; // 최소 너비 설정
+      const width = Math.max(minWidth, startWidth + (e.pageX - startX));
+      th.style.width = width + 'px';
+      
+      // 필드 이름 저장
+      const fieldName = th.getAttribute('data-field');
+      if (fieldName) {
+        // 로컬 스토리지에 열 너비 저장
+        try {
+          const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+          columnWidths[fieldName] = width;
+          localStorage.setItem('tableColumnWidths', JSON.stringify(columnWidths));
+        } catch (err) {
+          console.error('열 너비 저장 오류:', err);
+        }
+      }
+    }
+    
+    // 클로저 내부에서 접근 가능한 onMouseUp 함수
+    function onMouseUp() {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.userSelect = '';
+    }
+    
+    th.setAttribute('data-resize-initialized', 'true');
+  });
+}// 테이블 레이아웃 업데이트
+function updateTableLayout() {
+  // 여기에 테이블 레이아웃 관련 추가 작업 구현
+  // 예: 관련 셀 너비 조정, 스크롤 위치 재조정 등
+}
+
+// 테이블 레이아웃 저장 (변경사항 저장 버튼 클릭 시 호출)
+function saveTableLayout() {
+  try {
+    // 로컬 스토리지에서 열 너비 정보 가져오기
+    const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+    
+    // 테이블 레이아웃 데이터 생성
+    const tableLayout = {
+      columnWidths: columnWidths,
+      lastUpdate: new Date().toISOString()
+    };
+    
+    // Firebase에 저장
+    db.ref("tableLayout").set(tableLayout)
+      .then(() => {
+        console.log("테이블 레이아웃 저장 완료");
+      })
+      .catch(err => {
+        console.error("테이블 레이아웃 저장 오류:", err);
+      });
+  } catch (err) {
+    console.error("테이블 레이아웃 저장 준비 오류:", err);
+  }
+}
+
+// 테이블 레이아웃 로드 함수
+function loadTableLayout() {
+  return db.ref("tableLayout").once("value")
+    .then(snap => {
+      if (snap.exists()) {
+        const layout = snap.val();
+        if (layout.columnWidths) {
+          window.tableState = window.tableState || {};
+          window.tableState.columnWidths = layout.columnWidths;
+          
+          // 로컬 스토리지에도 저장
+          localStorage.setItem('tableColumnWidths', JSON.stringify(layout.columnWidths));
+          
+          console.log("테이블 레이아웃 로드 완료");
+          return true;
+        }
+      }
+      return false;
+    })
+    .catch(err => {
+      console.error("테이블 레이아웃 로드 오류:", err);
+      return false;
+    });
+}
+
+// 마우스 이동 핸들러
+function handleMouseMove(e) {
+  if (!window.tableState || !window.tableState.resizing) return;
+  
+  const width = Math.max(100, window.tableState.startWidth + (e.pageX - window.tableState.startX));
+  if (window.tableState.currentColumn) {
+    window.tableState.currentColumn.style.width = width + 'px';
+    
+    // 가이드라인 업데이트
+    updateResizeGuide(e.pageX);
+  }
+}
+
+// 마우스 업 핸들러
+function handleMouseUp(e) {
+  if (!window.tableState || !window.tableState.resizing) return;
+  
+  // 리사이징 종료
+  window.tableState.resizing = false;
+  document.body.classList.remove('resizing-active');
+  
+  // 리사이저 활성 클래스 제거
+  const activeResizer = document.querySelector('.column-resizer.active');
+  if (activeResizer) {
+    activeResizer.classList.remove('active');
+  }
+  
+  // 가이드라인 제거
+  removeResizeGuide();
+  
+  // 글로벌 이벤트 제거
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', handleMouseUp);
+  
+  // 변경된 너비 저장
+  if (window.tableState.currentColumn) {
+    saveColumnWidth(window.tableState.currentColumn);
+  }
+}
+
+// 리사이징 가이드라인 생성
+function createResizeGuide(posX) {
+  const guide = document.createElement('div');
+  guide.className = 'resize-guide';
+  guide.style.left = posX + 'px';
+  document.body.appendChild(guide);
+}
+
+// 리사이징 가이드라인 업데이트
+function updateResizeGuide(posX) {
+  const guide = document.querySelector('.resize-guide');
+  if (guide) {
+    guide.style.left = posX + 'px';
+  }
+}
+
+// 리사이징 가이드라인 제거
+function removeResizeGuide() {
+  const guide = document.querySelector('.resize-guide');
+  if (guide) {
+    guide.remove();
+  }
+}
+
+// 특정 컬럼의 너비 저장
+function saveColumnWidth(column) {
+  if (!column) return;
+  
+  const fieldName = column.getAttribute('data-field');
+  if (!fieldName) return;
+  
+  const width = column.offsetWidth;
+  
+  // window.tableState가 존재하는지 확인
+  if (!window.tableState) {
+    window.tableState = { columnWidths: {} };
+  }
+  
+  // columnWidths가 존재하는지 확인
+  if (!window.tableState.columnWidths) {
+    window.tableState.columnWidths = {};
+  }
+  
+  // 스테이트에 업데이트
+  window.tableState.columnWidths[fieldName] = width;
+  
+  // 로컬 스토리지에 저장
+  localStorage.setItem('tableColumnWidths', JSON.stringify(window.tableState.columnWidths));
+}
+
+// 저장된 컬럼 너비 로드
+function loadColumnWidths() {
+  try {
+    const savedWidths = localStorage.getItem('tableColumnWidths');
+    if (savedWidths) {
+      if (!window.tableState) {
+        window.tableState = {};
+      }
+      window.tableState.columnWidths = JSON.parse(savedWidths);
+    }
+  } catch (err) {
+    console.error('테이블 컬럼 너비 로드 오류:', err);
+  }
+}
+
+
+ // 클로저 내부에서 접근 가능한 onMouseMove 함수
+    function onMouseMove(e) {
+      // 최소 너비보다 작아지지 않도록 제한
+      const minWidth = 50; // 최소 너비 설정
+      const width = Math.max(minWidth, startWidth + (e.pageX - startX));
+      th.style.width = width + 'px';
+      
+      // 필드 이름 저장 (선택사항)
+      const fieldName = th.getAttribute('data-field');
+      if (fieldName) {
+        // 로컬 스토리지에 열 너비 저장 (선택사항)
+        try {
+          const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+          columnWidths[fieldName] = width;
+          localStorage.setItem('tableColumnWidths', JSON.stringify(columnWidths));
+        } catch (err) {
+          console.error('열 너비 저장 오류:', err);
+        }
+      }
+    }
+
+// 전체 화면 모드 토글
+function toggleFullscreenTable() {
+  const container = document.getElementById('adminScheduleListPane');
+  const icon = document.getElementById('fullscreenIcon');
+  
+  if (fullscreenMode) {
+    // 전체 화면 종료
+    container.classList.remove('fullscreen-table');
+    icon.textContent = '⛶';
+    fullscreenMode = false;
+  } else {
+    // 전체 화면 시작
+    container.classList.add('fullscreen-table');
+    icon.textContent = '⛔';
+    fullscreenMode = true;
+    
+    // 전체화면에서 하단 버튼 영역 추가
+    const bottomControls = document.createElement('div');
+    bottomControls.className = 'bottom-controls';
+    bottomControls.innerHTML = `
+      <button onclick="saveScheduleTable()" class="admin-btn" style="background:#27ae60;">
+        💾 변경사항 저장
+      </button>
+      <button onclick="toggleFullscreenTable()" class="admin-btn">
+        ⛔ 전체화면 종료
+      </button>
+    `;
+    
+    // 이미 있는 경우 제거 후 추가
+    const existingControls = container.querySelector('.bottom-controls');
+    if (existingControls) {
+      existingControls.remove();
+    }
+    
+    container.appendChild(bottomControls);
+  }
+  
+  // 스크롤 위치 초기화 및 테이블 리사이징 설정 갱신
+  setTimeout(() => {
+    const tableContainer = document.getElementById('scheduleTableContainer');
+    if (tableContainer) {
+      tableContainer.scrollTop = 0;
+      tableContainer.scrollLeft = 0;
+      setupTableResizing();
+    }
+  }, 100);
 }
 
 function setDefaultAccessHistoryDates() {
@@ -2682,10 +4141,12 @@ function showRecipientSelectPopup(message, callback) {
     callback(false);
   };
 }
+// 이메일 발송 함수 수정 (SHIPOWNER 필드 추가)
 function sendEmailNotification(){
   var startDate = document.getElementById("modalStartDate").value;
   var endDate = document.getElementById("modalEndDate").value;
   var imoNo = document.getElementById("modalIMONo").value.trim();
+  var shipOwner = document.getElementById("modalShipOwner").value.trim(); // SHIPOWNER 필드 추가
   var shipName = document.getElementById("modalLine").value.trim();
   var hullNo = document.getElementById("modalHullNo").value.trim();
   var regionName = document.getElementById("modalRegion").value.trim();
@@ -2721,7 +4182,7 @@ function sendEmailNotification(){
   if(extraEngineerNames){
     allEngineerNames = allEngineerNames ? (allEngineerNames + ", " + extraEngineerNames) : extraEngineerNames;
   }
-var managerNames = "";
+  var managerNames = "";
   var managerSelect = document.getElementById("modalManagerSelect");
   if(managerSelect){
     managerNames = Array.from(managerSelect.selectedOptions)
@@ -2735,6 +4196,7 @@ var managerNames = "";
   msg += "시작일: " + startDate + "\n";
   msg += "종료일: " + endDate + "\n";
   msg += "IMO No.: " + imoNo + "\n";
+  msg += "SHIPOWNER: " + shipOwner + "\n"; // SHIPOWNER 필드 추가
   msg += "Ship Name: " + shipName + "\n";
   msg += "Hull No.: " + hullNo + "\n";
   msg += "지역: " + regionName + "\n";
@@ -2781,9 +4243,7 @@ var managerNames = "";
       alert("이메일 전송에 실패했습니다: " + (error.text || error.message || "알 수 없는 오류"));
     });
   });
-}
-
-/****************************************
+}/****************************************
  22) 타임 테이블 모달 관련 기능
 *****************************************/
 function openTimeTableModal(){
@@ -3313,6 +4773,7 @@ function populateManagerFilters() {
 /****************************************
  1) 엑셀 시리얼 날짜 변환 함수 (수정됨)
 *****************************************/
+// 날짜 파싱 함수
 function parseExcelDate(cellValue) {
   if (!cellValue) return "";
   if (typeof cellValue === "number") {
@@ -3354,4 +4815,167 @@ function showStatusPane(type){
       document.getElementById("btnStatusHistory").classList.add("active");
       drawStatusHistory();
    }
+}
+
+
+// Ship Name 셀 생성 함수
+function createShipNameCell(sch, tr) {
+  const shipNameCell = document.createElement("td");
+  shipNameCell.setAttribute("contenteditable", "true");
+  shipNameCell.setAttribute("data-field", "lineName");
+  shipNameCell.textContent = sch.lineName || "";
+  shipNameCell.setAttribute("data-original", sch.lineName || "");
+  
+  // 셀 속성 설정 - 더 넓은 폭과 스크롤
+  shipNameCell.style.minWidth = "200px";
+  shipNameCell.style.maxWidth = "600px"; 
+  shipNameCell.style.width = "300px";
+  shipNameCell.style.maxHeight = "100px";
+  shipNameCell.style.overflowY = "auto";
+  shipNameCell.style.whiteSpace = "pre-wrap";
+  shipNameCell.style.wordBreak = "break-word";
+  
+  shipNameCell.onblur = function() {
+    trackChange(this);
+  };
+  
+  // 데이터 필드 속성 추가
+  shipNameCell.setAttribute("data-field", "lineName");
+  
+  tr.appendChild(shipNameCell);
+  return shipNameCell;
+}
+// 상세 내용 셀 생성 함수
+function createDetailsCell(sch, tr) {
+  const detailsCell = document.createElement("td");
+  detailsCell.setAttribute("contenteditable", "true");
+  detailsCell.setAttribute("data-field", "details");
+  detailsCell.textContent = sch.details || "";
+  detailsCell.setAttribute("data-original", sch.details || "");
+  
+  // 셀 속성 설정 - 더 넓은 폭과 스크롤
+  detailsCell.style.minWidth = "200px";
+  detailsCell.style.maxWidth = "600px"; 
+  detailsCell.style.width = "300px";
+  detailsCell.style.maxHeight = "100px";
+  detailsCell.style.overflowY = "auto";
+  detailsCell.style.whiteSpace = "pre-wrap";
+  detailsCell.style.wordBreak = "break-word";
+  
+  detailsCell.onblur = function() {
+    trackChange(this);
+  };
+  
+  tr.appendChild(detailsCell);
+  return detailsCell;
+}
+
+// 전달사항 셀 생성 함수
+function createMessageCell(sch, tr) {
+  const messageCell = document.createElement("td");
+  messageCell.setAttribute("contenteditable", "true");
+  messageCell.setAttribute("data-field", "message");
+  messageCell.textContent = sch.message || "";
+  messageCell.setAttribute("data-original", sch.message || "");
+  
+  // 셀 속성 설정 - 더 넓은 폭과 스크롤
+  messageCell.style.minWidth = "200px";
+  messageCell.style.maxWidth = "600px"; 
+  messageCell.style.width = "300px";
+  messageCell.style.maxHeight = "100px";
+  messageCell.style.overflowY = "auto";
+  messageCell.style.whiteSpace = "pre-wrap";
+  messageCell.style.wordBreak = "break-word";
+  
+  messageCell.onblur = function() {
+    trackChange(this);
+  };
+  
+  tr.appendChild(messageCell);
+  return messageCell;
+}
+// 스크롤 가능한 편집 셀 생성 함수들
+
+// 기본 편집 가능한 셀 생성 함수
+function createEditableCell(sch, fieldName, tr, displayWidth = false) {
+  const cell = document.createElement("td");
+  
+  // 스크롤 가능한 컨테이너 생성
+  const container = document.createElement("div");
+  container.className = "scrollable-cell-container";
+  container.setAttribute("contenteditable", "true");
+  container.setAttribute("data-field", fieldName);
+  container.textContent = sch[fieldName] || "";
+  container.setAttribute("data-original", sch[fieldName] || "");
+  
+  // 이벤트 핸들러 추가
+  container.onblur = function() {
+    trackChange(this);
+  };
+  
+  // 넓은 필드일 경우 추가 스타일 적용
+  if (displayWidth) {
+    container.style.minWidth = "200px";
+    container.style.maxWidth = "600px";
+    container.style.width = "300px";
+  }
+  
+  cell.appendChild(container);
+  cell.setAttribute("data-field", fieldName);
+  
+  return cell;
+}
+
+// Ship Name 셀 생성 함수
+function createShipNameCell(sch, tr) {
+  const cell = createEditableCell(sch, "lineName", tr, true);
+  return cell;
+}
+
+// 상세 내용 셀 생성 함수
+function createDetailsCell(sch, tr) {
+  const cell = createEditableCell(sch, "details", tr, true);
+  return cell;
+}
+
+// 전달사항 셀 생성 함수
+function createMessageCell(sch, tr) {
+  const cell = createEditableCell(sch, "message", tr, true);
+  return cell;
+}
+
+// 취소 사유 셀 생성 함수
+function createCancelReasonCell(sch, tr) {
+  const cell = createEditableCell(sch, "cancelReason", tr, false);
+  return cell;
+}
+
+// 국가 셀 생성 함수
+function createCountryCell(sch, tr) {
+  const cell = createEditableCell(sch, "country", tr, false);
+  return cell;
+}
+
+// 지역 셀 생성 함수
+function createRegionCell(sch, tr) {
+  const cell = createEditableCell(sch, "regionName", tr, false);
+  return cell;
+}
+
+// IMO 번호 셀 생성 함수
+function createImoCell(sch, tr) {
+  const cell = createEditableCell(sch, "imoNo", tr, false);
+  return cell;
+}
+
+// Hull 번호 셀 생성 함수
+function createHullCell(sch, tr) {
+  const cell = createEditableCell(sch, "hullNo", tr, false);
+  return cell;
+}
+
+// PO 번호 셀 생성 함수
+function createPoNoCell(sch, tr) {
+  const cell = createEditableCell(sch, "poNo", tr, false);
+  return cell;
 }
