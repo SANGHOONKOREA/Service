@@ -549,6 +549,13 @@
         <select id="modalManagerSelect"></select>
       </div>
       
+<div class="modal-row">
+  <label>AS NO.</label>
+  <input type="text" id="modalAsNo"/>
+</div>
+
+
+
       <!-- 시작일/종료일을 한 줄에 표시 -->
 <!-- 시작일/종료일 -->
 <!-- 시작일/종료일 (수정 후) -->
@@ -583,15 +590,18 @@
   </div>
 </div>
 
-      
-      <div class="modal-row">
-        <label>IMO No.</label>
-        <input type="text" id="modalIMONo"/>
-      </div>
-<div class="modal-row">
-  <label>SHIPOWNER</label>
-  <input type="text" id="modalShipOwner"/>
+
+<div class="modal-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">IMO No.</label>
+    <input type="text" id="modalIMONo" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">SHIPOWNER</label>
+    <input type="text" id="modalShipOwner" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
 </div>
+
 <div class="modal-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
   <div style="flex: 1; min-width: 0;">
     <label style="font-size: 0.8em;">Ship Name</label>
