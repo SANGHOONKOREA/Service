@@ -630,6 +630,13 @@ function nextWeek(){ currentWeekDate.setDate(currentWeekDate.getDate()+7); drawW
  11) 스케줄 모달
 *****************************************/
 // 스케줄 모달 열기 함수 수정 (SHIPOWNER 필드 추가)
+// main.js의 openModal 함수 부분 수정
+
+// openModal 함수 내에서 서비스 완료 상태에서도 저장 버튼 활성화하는 부분 수정
+// 아래 코드를 openModal 함수 내의 기존 버튼 상태 처리 부분에 추가/수정
+
+// openModal 함수 수정 - AS No.와 국가 필드 초기화 추가
+
 function openModal(scheduleId = null, dateStr = null){
   editingScheduleId = scheduleId;
   document.getElementById("modal-background").style.display = "block";
@@ -643,16 +650,17 @@ function openModal(scheduleId = null, dateStr = null){
   const btnCancel = document.getElementById("btnCancelSchedule");
   const btnFinalize = document.getElementById("btnFinalizeSchedule");
   const btnSave = document.getElementById("btnSaveSchedule");
-  const btnComplete = document.getElementById("btnCompleteService"); // 추가
+  const btnSaveOnly = document.getElementById("btnSaveOnly");
+  const btnComplete = document.getElementById("btnCompleteService");
 
-  // 초기 상태 설정
+  // 초기 상태 설정 - 모든 필드 초기화
   btnDelete.style.display = "none";
   btnCancel.style.display = "none";
   btnFinalize.style.display = "none";
-  btnComplete.style.display = "none"; // 추가
+  btnComplete.style.display = "none";
   document.getElementById("scheduleStatusLabel").textContent = "";
   document.getElementById("modalIMONo").value = "";
-  document.getElementById("modalShipOwner").value = ""; // SHIPOWNER 필드 초기화
+  document.getElementById("modalShipOwner").value = "";
   document.getElementById("modalLine").value = "";
   document.getElementById("modalHullNo").value = "";
   document.getElementById("modalRegion").value = "";
@@ -664,6 +672,12 @@ function openModal(scheduleId = null, dateStr = null){
   document.getElementById("modalETA").value = "";
   document.getElementById("modalETB").value = "";
   document.getElementById("modalETD").value = "";
+  
+  // AS No. 필드 초기화 추가
+  document.getElementById("modalAsNo").value = "";
+  
+  // 국가 필드 초기화 추가
+  document.getElementById("modalCountry").value = "";
 
   // 서비스 불가 체크박스에 이벤트 핸들러 추가
   document.getElementById("modalUnavailable").onchange = toggleManagerField;
@@ -677,7 +691,7 @@ function openModal(scheduleId = null, dateStr = null){
     document.getElementById("includeOtherPartnersRow").style.display = "";
     document.getElementById("includeOtherPartnersCheckbox").checked = false;
     document.getElementById("includeOtherPartnersCheckbox").onchange = function(){
-    updateEngineerLists();
+      updateEngineerLists();
     };
   } else if (currentUser.role === "협력") {
     // 협력: 엔지니어 선택은 "자신의 업체만", 본사 담당자 전체, "기타 협력사 포함" 체크박스는 숨김
@@ -693,62 +707,67 @@ function openModal(scheduleId = null, dateStr = null){
     document.getElementById("includeOtherPartnersRow").style.display = "none";
   }
 
-// 2) scheduleId 유무에 따라 (편집 모드 / 새 스케줄)
-if (scheduleId) {
-  // 편집 모드: 기존 스케줄 가져오기
-  const sch = schedules.find(x => x.id === scheduleId);
-  if (!sch) return;
-  if (!canAccessSchedule(sch)) {
-    alert("권한 없음");
-    closeModal();
-    return;
-  }
+  // 2) scheduleId 유무에 따라 (편집 모드 / 새 스케줄)
+  if (scheduleId) {
+    // 편집 모드: 기존 스케줄 가져오기
+    const sch = schedules.find(x => x.id === scheduleId);
+    if (!sch) return;
+    if (!canAccessSchedule(sch)) {
+      alert("권한 없음");
+      closeModal();
+      return;
+    }
 
     // 기존 값 채우기
-  document.getElementById("modalStartDate").value = sch.startDate;
-  document.getElementById("modalEndDate").value   = sch.endDate;
-  document.getElementById("modalIMONo").value     = sch.imoNo || "";
-  document.getElementById("modalShipOwner").value = sch.shipOwner || ""; // SHIPOWNER 필드 추가
-  document.getElementById("modalLine").value      = sch.lineName || "";
-  document.getElementById("modalHullNo").value    = sch.hullNo || "";
-  document.getElementById("modalRegion").value    = sch.regionName || "";
-  document.getElementById("modalDetails").value   = sch.details || "";
-  document.getElementById("modalMessage").value   = sch.message || "";
-  document.getElementById("modalUnavailable").checked = !!sch.unavailable;
-  document.getElementById("modalETA").value = sch.eta || "";
-  document.getElementById("modalETB").value = sch.etb || "";
-  document.getElementById("modalETD").value = sch.etd || "";
+    document.getElementById("modalStartDate").value = sch.startDate;
+    document.getElementById("modalEndDate").value   = sch.endDate;
+    document.getElementById("modalIMONo").value     = sch.imoNo || "";
+    document.getElementById("modalShipOwner").value = sch.shipOwner || "";
+    document.getElementById("modalLine").value      = sch.lineName || "";
+    document.getElementById("modalHullNo").value    = sch.hullNo || "";
+    document.getElementById("modalRegion").value    = sch.regionName || "";
+    document.getElementById("modalDetails").value   = sch.details || "";
+    document.getElementById("modalMessage").value   = sch.message || "";
+    document.getElementById("modalUnavailable").checked = !!sch.unavailable;
+    document.getElementById("modalETA").value = sch.eta || "";
+    document.getElementById("modalETB").value = sch.etb || "";
+    document.getElementById("modalETD").value = sch.etd || "";
+    
+    // AS No. 값 채우기 추가
+    document.getElementById("modalAsNo").value = sch.asNo || "";
+    
+    // 국가 값 채우기 추가
+    document.getElementById("modalCountry").value = sch.country || "";
 
     // 본사 담당자
-  buildManagerSelectOptions(document.getElementById("modalManagerSelect"), sch.managerId);
-  // 중요: 원래 담당자 값 저장 (항상 먼저 저장)
-  document.getElementById("modalManagerSelect").setAttribute('data-original-value', sch.managerId || '');
-  
+    buildManagerSelectOptions(document.getElementById("modalManagerSelect"), sch.managerId);
+    // 중요: 원래 담당자 값 저장 (항상 먼저 저장)
+    document.getElementById("modalManagerSelect").setAttribute('data-original-value', sch.managerId || '');
+    
     // 상태 표시
-  if (sch.unavailable) {
-    document.getElementById("scheduleStatusLabel").textContent = "서비스 불가";
-  } else if (sch.status === "cancelled") {
-    document.getElementById("scheduleStatusLabel").textContent = "일정 취소";
-  } else if (sch.status === "completed") {
-    document.getElementById("scheduleStatusLabel").textContent = "서비스 완료";
-  } else if (sch.status === "finalized" || 
+    if (sch.unavailable) {
+      document.getElementById("scheduleStatusLabel").textContent = "서비스 불가";
+    } else if (sch.status === "cancelled") {
+      document.getElementById("scheduleStatusLabel").textContent = "일정 취소";
+    } else if (sch.status === "completed") {
+      document.getElementById("scheduleStatusLabel").textContent = "서비스 완료";
+    } else if (sch.status === "finalized" || 
              sch.status === "일정 변경 / 최종 확정" || 
              sch.status === "일정 확정") {
-    document.getElementById("scheduleStatusLabel").textContent = "일정 확정";
-  } else if (sch.status === "일정 등록 대기") {
-    document.getElementById("scheduleStatusLabel").textContent = "일정 등록 대기";
-  } else if (sch.status === "일정 등록") {
-    document.getElementById("scheduleStatusLabel").textContent = "일정 등록";
-  } else if (sch.status === "일정 변경") {
-    document.getElementById("scheduleStatusLabel").textContent = "일정 변경";
-  } else {
-    // 기본값 처리
-    document.getElementById("scheduleStatusLabel").textContent = "일정 등록";
-  }
+      document.getElementById("scheduleStatusLabel").textContent = "일정 확정";
+    } else if (sch.status === "일정 등록 대기") {
+      document.getElementById("scheduleStatusLabel").textContent = "일정 등록 대기";
+    } else if (sch.status === "일정 등록") {
+      document.getElementById("scheduleStatusLabel").textContent = "일정 등록";
+    } else if (sch.status === "일정 변경") {
+      document.getElementById("scheduleStatusLabel").textContent = "일정 변경";
+    } else {
+      // 기본값 처리
+      document.getElementById("scheduleStatusLabel").textContent = "일정 등록";
+    }
 
-  
-  // 버튼 및 기타 요소 처리 (필요 시)
-  document.getElementById("btnSaveSchedule").textContent = "일정 변경";
+    // 버튼 및 기타 요소 처리
+    document.getElementById("btnSaveSchedule").textContent = "일정 변경";
 
     // 버튼 표시
     btnSave.textContent = "일정 변경";
@@ -758,35 +777,42 @@ if (scheduleId) {
       btnDelete.style.display = "inline-block";
       btnCancel.style.display = "inline-block";
       btnFinalize.style.display = "inline-block";
-      btnComplete.style.display = "inline-block"; // 추가
+      btnComplete.style.display = "inline-block";
     } else {
       userRow.style.display = "none";
       btnCancel.style.display = "inline-block";
       btnFinalize.style.display = "inline-block";
-      btnComplete.style.display = "inline-block"; // 추가
+      btnComplete.style.display = "inline-block";
     }
     
-    // 서비스 완료 상태면 다른 버튼들 비활성화
+    // 서비스 완료 상태에서의 버튼 처리
     if (sch.status === "completed") {
-      btnSave.disabled = true;
+      // 저장 버튼은 항상 활성화
+      btnSave.disabled = false;
+      btnSaveOnly.disabled = false;
       btnCancel.disabled = true;
       btnFinalize.disabled = true;
       btnComplete.disabled = true;
-      document.getElementById("btnSendEmail").disabled = false; // 이메일 발송은 가능
+      document.getElementById("btnSendEmail").disabled = false;
     } else {
       btnSave.disabled = false;
+      btnSaveOnly.disabled = false;
       btnCancel.disabled = false;
       btnFinalize.disabled = false;
       btnComplete.disabled = false;
       document.getElementById("btnSendEmail").disabled = false;
     }
-} else {
-  // 신규 등록 모드
-  document.getElementById("modalStartDate").value = dateStr || "";
-  document.getElementById("modalEndDate").value   = dateStr || "";
-  document.getElementById("scheduleStatusLabel").textContent = "일정 등록 대기";
-  document.getElementById("btnSaveSchedule").textContent = "일정 추가";
-}
+  } else {
+    // 신규 등록 모드
+    document.getElementById("modalStartDate").value = dateStr || "";
+    document.getElementById("modalEndDate").value   = dateStr || "";
+    document.getElementById("scheduleStatusLabel").textContent = "일정 등록 대기";
+    document.getElementById("btnSaveSchedule").textContent = "일정 추가";
+    
+    // 신규 추가 시에도 저장 버튼 활성화
+    btnSave.disabled = false;
+    btnSaveOnly.disabled = false;
+  }
 
   // 3) 가용 엔지니어 갱신
   updateAvailableEngineers(
@@ -798,9 +824,10 @@ if (scheduleId) {
     document.getElementById("modalEndDate").value
   );
   
-  // 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 초기 상태 설정
+  // 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 설정
   toggleManagerField();
-}// 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
+}
+// 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
 // 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
 // 서비스 불가 체크박스 상태에 따라 본사 담당자 필드 상태 변경하는 함수
 function toggleManagerField() {
@@ -2100,7 +2127,7 @@ function downloadExcel() {
       "담당자": managerName,
       "업체": company,
       "엔지니어": engineerName,
-      "PO NO.": sch.poNo || "",
+      "AS NO.": sch.asNo || "",
       "AS 구분": sch.asType || "",
       "시작일": sch.startDate || "",
       "종료일": sch.endDate || "",
@@ -2275,7 +2302,7 @@ function uploadExcel(event){
         managerId: managerUid,
         cancelReason: row["취소 사유"] || "",
         departureDate: departureDate,
-        poNo: row["PO NO."] || "",
+        asNo: row["AS NO."] || "",
         asType: row["AS 구분"] || ""
       };
     });
@@ -2541,6 +2568,16 @@ function drawScheduleList() {
     setupTableResizing();
   });
 }
+
+// 테이블의 모든 th 요소에 resizable 클래스 추가
+function addResizableClassToHeaders() {
+  const headers = document.querySelectorAll('#editableScheduleTable th');
+  headers.forEach(header => {
+    header.classList.add('resizable');
+  });
+}
+
+
 // 단일 행 저장 함수 추가
 function saveScheduleRow(scheduleId) {
   if (!modifiedCells[scheduleId]) {
@@ -2594,6 +2631,336 @@ function saveScheduleRow(scheduleId) {
       alert(`저장 중 오류가 발생했습니다: ${err.message}`);
     });
 }
+
+// drawScheduleList 함수 끝에 추가할 코드
+function forceApplyResizing() {
+  const table = document.getElementById('editableScheduleTable');
+  if (!table) return;
+  
+  const headers = table.querySelectorAll('th');
+  headers.forEach(th => {
+    // 기존 리사이저 제거
+    const existingResizers = th.querySelectorAll('.column-resizer');
+    existingResizers.forEach(r => r.remove());
+    
+    // 새 리사이저 추가
+    const resizer = document.createElement('div');
+    resizer.className = 'column-resizer';
+    resizer.style.position = 'absolute';
+    resizer.style.top = '0';
+    resizer.style.right = '0';
+    resizer.style.bottom = '0';
+    resizer.style.width = '5px';
+    resizer.style.cursor = 'col-resize';
+    resizer.style.backgroundColor = '#e0e0e0';
+    
+    // th에 필요한 스타일 추가
+    th.style.position = 'relative';
+    th.style.overflow = 'hidden';
+    
+    // 리사이징 이벤트 핸들러
+    resizer.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      const startX = e.pageX;
+      const startWidth = th.offsetWidth;
+      
+      // 마우스 이동 이벤트
+      const mouseMoveHandler = function(e) {
+        const width = Math.max(50, startWidth + (e.pageX - startX));
+        th.style.width = width + 'px';
+        th.style.minWidth = width + 'px';
+      };
+      
+      // 마우스 업 이벤트
+      const mouseUpHandler = function() {
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        document.removeEventListener('mouseup', mouseUpHandler);
+      };
+      
+      document.addEventListener('mousemove', mouseMoveHandler);
+      document.addEventListener('mouseup', mouseUpHandler);
+    });
+    
+    th.appendChild(resizer);
+  });
+}
+
+// 테이블이 렌더링된 후 강제 리사이징 적용
+setTimeout(forceApplyResizing, 500);
+
+// 테이블 헤더에 브라우저 기본 리사이징 기능 활성화
+function enableBrowserResize() {
+  const table = document.getElementById('editableScheduleTable');
+  if (!table) return;
+  
+  const headers = table.querySelectorAll('th');
+  headers.forEach(th => {
+    // 브라우저 기본 리사이징 활성화를 위한 CSS 설정
+    th.style.position = 'relative';
+    th.style.overflow = 'auto';
+    th.style.resize = 'horizontal';
+    th.style.minWidth = '50px';
+    
+    // 리사이즈 후 이벤트 처리
+    th.addEventListener('mouseup', function() {
+      // 너비 저장 (선택사항)
+      const fieldName = th.getAttribute('data-field');
+      if (fieldName) {
+        try {
+          const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+          columnWidths[fieldName] = th.offsetWidth;
+          localStorage.setItem('tableColumnWidths', JSON.stringify(columnWidths));
+        } catch (err) {
+          console.error('열 너비 저장 오류:', err);
+        }
+      }
+    });
+  });
+}
+
+// 테이블 로드 후 기본 리사이징 활성화
+setTimeout(enableBrowserResize, 500);
+
+// drawScheduleList 함수 마지막에 추가
+function enhanceTableScrolling() {
+  const tableContainer = document.getElementById('scheduleTableContainer');
+  if (!tableContainer) return;
+  
+  // 컨테이너 스크롤 확실히 적용
+  tableContainer.style.overflowX = 'scroll';
+  tableContainer.style.overflowY = 'auto';
+  tableContainer.style.maxWidth = '100%';
+  
+  // 테이블 너비 설정
+  const table = document.getElementById('editableScheduleTable');
+  if (table) {
+    table.style.width = 'auto';
+    table.style.minWidth = '100%';
+    
+    // 테이블 너비 계산 및 설정
+    let totalWidth = 0;
+    const headers = table.querySelectorAll('th');
+    headers.forEach(th => {
+      // 기본 너비 설정
+      if (!th.style.width) {
+        th.style.minWidth = '100px';
+      }
+      totalWidth += th.offsetWidth;
+    });
+    
+    // 테이블 전체 너비가 컨테이너보다 작으면 최소 너비 설정
+    if (totalWidth < tableContainer.offsetWidth) {
+      table.style.minWidth = tableContainer.offsetWidth + 'px';
+    } else {
+      table.style.minWidth = totalWidth + 'px';
+    }
+  }
+  
+  // 스크롤 위치 초기화
+  tableContainer.scrollLeft = 0;
+}
+
+// 테이블 로드 후 스크롤 기능 강화
+setTimeout(enhanceTableScrolling, 600);
+
+// 리사이징 시 스크롤 업데이트
+function updateScrollAfterResize() {
+  const headers = document.querySelectorAll('#editableScheduleTable th');
+  headers.forEach(th => {
+    th.addEventListener('mouseup', function() {
+      // 리사이징 후 스크롤 업데이트
+      setTimeout(enhanceTableScrolling, 100);
+    });
+  });
+}
+
+// 리사이징 후 스크롤 업데이트 기능 추가
+setTimeout(updateScrollAfterResize, 700);
+
+// 테이블 헤더 리사이징 및 전체 테이블 너비 동기화 함수
+function enhanceTableResizing() {
+  const table = document.getElementById('editableScheduleTable');
+  const tableContainer = document.getElementById('scheduleTableContainer');
+  if (!table || !tableContainer) return;
+  
+  const headers = table.querySelectorAll('th');
+  
+  headers.forEach(th => {
+    // 이미 초기화된 경우 건너뛰기
+    if (th.getAttribute('data-resize-initialized') === 'true') return;
+    
+    // 리사이저 요소 생성
+    const resizer = document.createElement('div');
+    resizer.className = 'column-resizer';
+    resizer.style.position = 'absolute';
+    resizer.style.top = '0';
+    resizer.style.right = '0';
+    resizer.style.bottom = '0';
+    resizer.style.width = '8px';
+    resizer.style.cursor = 'col-resize';
+    resizer.style.zIndex = '10';
+    resizer.style.backgroundColor = 'transparent';
+    
+    // 호버 상태 스타일
+    resizer.addEventListener('mouseover', () => {
+      resizer.style.backgroundColor = 'rgba(0, 120, 215, 0.3)';
+    });
+    
+    resizer.addEventListener('mouseout', () => {
+      resizer.style.backgroundColor = 'transparent';
+    });
+    
+    // 리사이징 이벤트 처리
+    resizer.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // 초기 위치와 너비 기록
+      const startX = e.pageX;
+      const startWidth = th.offsetWidth;
+      const tableStartWidth = table.offsetWidth;
+      
+      // 마우스 이동 이벤트
+      function onMouseMove(e) {
+        // 새 너비 계산 (최소 50px)
+        const newWidth = Math.max(50, startWidth + (e.pageX - startX));
+        const widthDiff = newWidth - startWidth;
+        
+        // 열 너비 업데이트
+        th.style.width = newWidth + 'px';
+        th.style.minWidth = newWidth + 'px';
+        
+        // 테이블 전체 너비 업데이트 (증가된 만큼 추가)
+        const newTableWidth = tableStartWidth + widthDiff;
+        table.style.width = newTableWidth + 'px';
+        table.style.minWidth = newTableWidth + 'px';
+        
+        // 스크롤 위치 조정 (선택 사항)
+        if (widthDiff > 0) {
+          tableContainer.scrollLeft += (widthDiff / 2);
+        }
+      }
+      
+      // 마우스 업 이벤트
+      function onMouseUp() {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        
+        // 필드명 기반 너비 저장
+        const fieldName = th.getAttribute('data-field');
+        if (fieldName) {
+          try {
+            const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+            columnWidths[fieldName] = th.offsetWidth;
+            localStorage.setItem('tableColumnWidths', JSON.stringify(columnWidths));
+          } catch (err) {
+            console.error('열 너비 저장 오류:', err);
+          }
+        }
+        
+        // 너비 변경 후 테이블 레이아웃 업데이트
+        saveTableLayout();
+      }
+      
+      // 전역 이벤트 리스너 등록
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+      
+      // 리사이저 활성 상태 표시
+      resizer.style.backgroundColor = 'rgba(0, 120, 215, 0.5)';
+    });
+    
+    // 테이블 헤더에 리사이저 추가
+    th.style.position = 'relative';
+    th.appendChild(resizer);
+    
+    // 초기화 완료 표시
+    th.setAttribute('data-resize-initialized', 'true');
+  });
+  
+  // 필요하다면 테이블 초기 너비 설정
+  calculateInitialTableWidth();
+}
+
+// 테이블 초기 너비 계산 함수
+function calculateInitialTableWidth() {
+  const table = document.getElementById('editableScheduleTable');
+  if (!table) return;
+  
+  // 모든 열의 너비 합산
+  let totalWidth = 0;
+  const headers = table.querySelectorAll('th');
+  
+  headers.forEach(th => {
+    // 저장된 너비 적용
+    const fieldName = th.getAttribute('data-field');
+    if (fieldName) {
+      try {
+        const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+        if (columnWidths[fieldName]) {
+          th.style.width = columnWidths[fieldName] + 'px';
+          th.style.minWidth = columnWidths[fieldName] + 'px';
+          totalWidth += columnWidths[fieldName];
+        } else {
+          // 기본 너비 설정
+          th.style.width = '100px';
+          th.style.minWidth = '100px';
+          totalWidth += 100;
+        }
+      } catch (err) {
+        console.error('열 너비 로드 오류:', err);
+        th.style.width = '100px';
+        th.style.minWidth = '100px';
+        totalWidth += 100;
+      }
+    } else {
+      th.style.width = '100px';
+      th.style.minWidth = '100px';
+      totalWidth += 100;
+    }
+  });
+  
+  // 테이블 전체 너비 설정
+  table.style.width = totalWidth + 'px';
+  table.style.minWidth = totalWidth + 'px';
+}
+
+// 테이블 스타일 초기화 및 스크롤 설정
+function initializeTableStyles() {
+  const tableContainer = document.getElementById('scheduleTableContainer');
+  if (!tableContainer) return;
+  
+  // 컨테이너 스크롤 스타일 강제 적용
+  tableContainer.style.overflowX = 'scroll';
+  tableContainer.style.overflowY = 'auto';
+  tableContainer.style.width = '100%';
+  tableContainer.style.position = 'relative';
+  tableContainer.style.border = '1px solid #ddd';
+  tableContainer.style.borderRadius = '4px';
+  
+  // 테이블 스타일 설정
+  const table = document.getElementById('editableScheduleTable');
+  if (table) {
+    table.style.tableLayout = 'fixed';
+    table.style.borderCollapse = 'collapse';
+  }
+}
+
+// 이 함수들을 drawScheduleList 함수의 마지막 부분에 호출
+function setupTableEnhancements() {
+  // 초기 스타일 설정
+  initializeTableStyles();
+  
+  // 첫 번째로 테이블 초기 너비 계산
+  calculateInitialTableWidth();
+  
+  // 테이블 리사이징 기능 향상
+  enhanceTableResizing();
+}
+
+// 타이밍 문제를 해결하기 위해 약간의 지연 후 실행
+setTimeout(setupTableEnhancements, 500);
+
 // 방선일 자동 계산 함수
 function updateDepartureDate(tr) {
   const startDateInput = tr.querySelector('[data-field="startDate"]');
@@ -3031,22 +3398,23 @@ function renderScheduleRows(filtered, tbody) {
     
     engineerCell.appendChild(engineerSelect);
     tr.appendChild(engineerCell);
-    
-    // 12. PO NO.
-    const poNoCell = document.createElement("td");
-    const poNoInput = document.createElement("input");
-    poNoInput.type = "text";
-    poNoInput.value = sch.poNo || "";
-    poNoInput.setAttribute("data-field", "poNo");
-    poNoInput.setAttribute("data-original", sch.poNo || "");
-    poNoInput.style.width = "100%";
-    poNoInput.style.padding = "4px";
-    poNoInput.style.border = "1px solid #ddd";
-    poNoInput.style.borderRadius = "4px";
-    poNoInput.style.backgroundColor = "#fff";
-    poNoInput.onchange = function() { trackChange(this); };
-    poNoCell.appendChild(poNoInput);
-    tr.appendChild(poNoCell);
+
+
+    // 12. AS NO. 
+const asNoCell = document.createElement("td");
+const asNoInput = document.createElement("input");
+asNoInput.type = "text";
+asNoInput.value = sch.asNo || "";
+asNoInput.setAttribute("data-field", "asNo");
+asNoInput.setAttribute("data-original", sch.asNo || "");
+asNoInput.style.width = "100%";
+asNoInput.style.padding = "4px";
+asNoInput.style.border = "1px solid #ddd";
+asNoInput.style.borderRadius = "4px";
+asNoInput.style.backgroundColor = "#fff";
+asNoInput.onchange = function() { trackChange(this); };
+asNoCell.appendChild(asNoInput);
+tr.appendChild(asNoCell);
     
     // 13. AS 구분
     const asTypeCell = document.createElement("td");
@@ -3518,127 +3886,18 @@ function saveScheduleTable() {
       console.error("저장 오류:", err);
       alert(`저장 중 오류가 발생했습니다: ${err.message}`);
     });
-}// 테이블 레이아웃 저장 (변경사항 저장 버튼 클릭 시 호출)
+}
+// 테이블 레이아웃 데이터에서도 변경 필요:
 function saveTableLayout() {
   try {
     // 로컬 스토리지에서 열 너비 정보 가져오기
     const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
     
-    // 테이블 레이아웃 데이터 생성
-    const tableLayout = {
-      columnWidths: columnWidths,
-      lastUpdate: new Date().toISOString()
-    };
-    
-    // Firebase에 저장 (db 객체가 정의되어 있다고 가정)
-    db.ref("tableLayout").set(tableLayout)
-      .then(() => {
-        console.log("테이블 레이아웃 저장 완료");
-      })
-      .catch(err => {
-        console.error("테이블 레이아웃 저장 오류:", err);
-      });
-  } catch (err) {
-    console.error("테이블 레이아웃 저장 준비 오류:", err);
-  }
-}
-// 테이블 레이아웃 로드 함수
-function loadTableLayout() {
-  return db.ref("tableLayout").once("value")
-    .then(snap => {
-      if (snap.exists()) {
-        const layout = snap.val();
-        if (layout.columnWidths) {
-          window.tableState = window.tableState || {};
-          window.tableState.columnWidths = layout.columnWidths;
-          
-          // 로컬 스토리지에도 저장
-          localStorage.setItem('tableColumnWidths', JSON.stringify(layout.columnWidths));
-          
-          console.log("테이블 레이아웃 로드 완료");
-          return true;
-        }
-      }
-      return false;
-    })
-    .catch(err => {
-      console.error("테이블 레이아웃 로드 오류:", err);
-      return false;
-    });
-}
-
-
-// 테이블 컬럼 리사이징 설정
-function setupTableResizing() {
-  const resizableThs = document.querySelectorAll('th.resizable');
-  
-  resizableThs.forEach(th => {
-    // 이미 이벤트 리스너가 설정되어 있으면 건너뛰기
-    if (th.getAttribute('data-resize-initialized') === 'true') {
-      return;
+    // poNo 필드를 asNo로 변경
+    if (columnWidths.poNo !== undefined) {
+      columnWidths.asNo = columnWidths.poNo;
+      delete columnWidths.poNo;
     }
-    
-    // 각 th 요소에 대해 클로저를 사용하여 변수 범위를 보존
-    let startX, startWidth;
-    
-    const resizer = document.createElement('div');
-    resizer.classList.add('column-resizer');
-    th.appendChild(resizer);
-    
-    resizer.addEventListener('mousedown', function(e) {
-      startX = e.pageX;
-      startWidth = th.offsetWidth;
-      
-      // 전역 이벤트 리스너 추가
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
-      
-      // 텍스트 선택 방지
-      document.body.style.userSelect = 'none';
-      e.preventDefault();
-    });
-    
-    // 클로저 내부에서 접근 가능한 onMouseMove 함수
-    function onMouseMove(e) {
-      // 최소 너비보다 작아지지 않도록 제한
-      const minWidth = 50; // 최소 너비 설정
-      const width = Math.max(minWidth, startWidth + (e.pageX - startX));
-      th.style.width = width + 'px';
-      
-      // 필드 이름 저장
-      const fieldName = th.getAttribute('data-field');
-      if (fieldName) {
-        // 로컬 스토리지에 열 너비 저장
-        try {
-          const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
-          columnWidths[fieldName] = width;
-          localStorage.setItem('tableColumnWidths', JSON.stringify(columnWidths));
-        } catch (err) {
-          console.error('열 너비 저장 오류:', err);
-        }
-      }
-    }
-    
-    // 클로저 내부에서 접근 가능한 onMouseUp 함수
-    function onMouseUp() {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      document.body.style.userSelect = '';
-    }
-    
-    th.setAttribute('data-resize-initialized', 'true');
-  });
-}// 테이블 레이아웃 업데이트
-function updateTableLayout() {
-  // 여기에 테이블 레이아웃 관련 추가 작업 구현
-  // 예: 관련 셀 너비 조정, 스크롤 위치 재조정 등
-}
-
-// 테이블 레이아웃 저장 (변경사항 저장 버튼 클릭 시 호출)
-function saveTableLayout() {
-  try {
-    // 로컬 스토리지에서 열 너비 정보 가져오기
-    const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
     
     // 테이블 레이아웃 데이터 생성
     const tableLayout = {
@@ -3658,7 +3917,6 @@ function saveTableLayout() {
     console.error("테이블 레이아웃 저장 준비 오류:", err);
   }
 }
-
 // 테이블 레이아웃 로드 함수
 function loadTableLayout() {
   return db.ref("tableLayout").once("value")
@@ -3684,136 +3942,234 @@ function loadTableLayout() {
     });
 }
 
-// 마우스 이동 핸들러
-function handleMouseMove(e) {
-  if (!window.tableState || !window.tableState.resizing) return;
+
+// setupTableResizing 함수 대체 - 테이블 리사이징 개선 버전
+function setupTableResizing() {
+  const table = document.getElementById('editableScheduleTable');
+  const tableContainer = document.getElementById('scheduleTableContainer');
   
-  const width = Math.max(100, window.tableState.startWidth + (e.pageX - window.tableState.startX));
-  if (window.tableState.currentColumn) {
-    window.tableState.currentColumn.style.width = width + 'px';
+  if (!table || !tableContainer) return;
+  
+  // 초기 테이블 폭 계산 및 적용
+  let totalWidth = 0;
+  const headers = table.querySelectorAll('th');
+  headers.forEach(th => {
+    // 저장된 너비 불러오기
+    const fieldName = th.getAttribute('data-field');
+    let width = 100; // 기본 너비
     
-    // 가이드라인 업데이트
-    updateResizeGuide(e.pageX);
-  }
-}
-
-// 마우스 업 핸들러
-function handleMouseUp(e) {
-  if (!window.tableState || !window.tableState.resizing) return;
-  
-  // 리사이징 종료
-  window.tableState.resizing = false;
-  document.body.classList.remove('resizing-active');
-  
-  // 리사이저 활성 클래스 제거
-  const activeResizer = document.querySelector('.column-resizer.active');
-  if (activeResizer) {
-    activeResizer.classList.remove('active');
-  }
-  
-  // 가이드라인 제거
-  removeResizeGuide();
-  
-  // 글로벌 이벤트 제거
-  document.removeEventListener('mousemove', handleMouseMove);
-  document.removeEventListener('mouseup', handleMouseUp);
-  
-  // 변경된 너비 저장
-  if (window.tableState.currentColumn) {
-    saveColumnWidth(window.tableState.currentColumn);
-  }
-}
-
-// 리사이징 가이드라인 생성
-function createResizeGuide(posX) {
-  const guide = document.createElement('div');
-  guide.className = 'resize-guide';
-  guide.style.left = posX + 'px';
-  document.body.appendChild(guide);
-}
-
-// 리사이징 가이드라인 업데이트
-function updateResizeGuide(posX) {
-  const guide = document.querySelector('.resize-guide');
-  if (guide) {
-    guide.style.left = posX + 'px';
-  }
-}
-
-// 리사이징 가이드라인 제거
-function removeResizeGuide() {
-  const guide = document.querySelector('.resize-guide');
-  if (guide) {
-    guide.remove();
-  }
-}
-
-// 특정 컬럼의 너비 저장
-function saveColumnWidth(column) {
-  if (!column) return;
-  
-  const fieldName = column.getAttribute('data-field');
-  if (!fieldName) return;
-  
-  const width = column.offsetWidth;
-  
-  // window.tableState가 존재하는지 확인
-  if (!window.tableState) {
-    window.tableState = { columnWidths: {} };
-  }
-  
-  // columnWidths가 존재하는지 확인
-  if (!window.tableState.columnWidths) {
-    window.tableState.columnWidths = {};
-  }
-  
-  // 스테이트에 업데이트
-  window.tableState.columnWidths[fieldName] = width;
-  
-  // 로컬 스토리지에 저장
-  localStorage.setItem('tableColumnWidths', JSON.stringify(window.tableState.columnWidths));
-}
-
-// 저장된 컬럼 너비 로드
-function loadColumnWidths() {
-  try {
-    const savedWidths = localStorage.getItem('tableColumnWidths');
-    if (savedWidths) {
-      if (!window.tableState) {
-        window.tableState = {};
+    if (fieldName) {
+      try {
+        const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+        if (columnWidths[fieldName]) {
+          width = columnWidths[fieldName];
+        }
+      } catch (err) {
+        console.error('열 너비 로드 오류:', err);
       }
-      window.tableState.columnWidths = JSON.parse(savedWidths);
     }
-  } catch (err) {
-    console.error('테이블 컬럼 너비 로드 오류:', err);
-  }
-}
-
-
- // 클로저 내부에서 접근 가능한 onMouseMove 함수
-    function onMouseMove(e) {
-      // 최소 너비보다 작아지지 않도록 제한
-      const minWidth = 50; // 최소 너비 설정
-      const width = Math.max(minWidth, startWidth + (e.pageX - startX));
-      th.style.width = width + 'px';
+    
+    // 필드별 최소 너비 설정
+    if (fieldName === 'shipName' || fieldName === 'details' || fieldName === 'message') {
+      th.style.minWidth = '200px';
+      width = Math.max(width, 200);
+    } else {
+      th.style.minWidth = '80px';
+    }
+    
+    // 너비 적용
+    th.style.width = width + 'px';
+    totalWidth += width;
+  });
+  
+  // 전체 테이블 너비 설정
+  table.style.width = totalWidth + 'px';
+  table.style.minWidth = totalWidth + 'px';
+  
+  // 각 헤더에 리사이징 핸들러 추가
+  headers.forEach(th => {
+    // 이미 리사이저가 있으면 제거
+    const existingResizers = th.querySelectorAll('.column-resizer');
+    existingResizers.forEach(resizer => resizer.remove());
+    
+    // 새 리사이저 추가
+    const resizer = document.createElement('div');
+    resizer.className = 'column-resizer';
+    
+    // 리사이저 스타일
+    resizer.style.position = 'absolute';
+    resizer.style.top = '0';
+    resizer.style.right = '0';
+    resizer.style.bottom = '0';
+    resizer.style.width = '8px';
+    resizer.style.cursor = 'col-resize';
+    resizer.style.backgroundColor = 'transparent';
+    resizer.style.zIndex = '10';
+    
+    // 호버 효과
+    resizer.addEventListener('mouseover', () => {
+      resizer.style.backgroundColor = 'rgba(0, 120, 215, 0.3)';
+    });
+    resizer.addEventListener('mouseout', () => {
+      resizer.style.backgroundColor = 'transparent';
+    });
+    
+    // 리사이징 이벤트
+    resizer.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
       
-      // 필드 이름 저장 (선택사항)
-      const fieldName = th.getAttribute('data-field');
-      if (fieldName) {
-        // 로컬 스토리지에 열 너비 저장 (선택사항)
-        try {
-          const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
-          columnWidths[fieldName] = width;
-          localStorage.setItem('tableColumnWidths', JSON.stringify(columnWidths));
-        } catch (err) {
-          console.error('열 너비 저장 오류:', err);
+      // 초기 위치와 너비
+      const startX = e.pageX;
+      const startWidth = th.offsetWidth;
+      const tableStartWidth = table.offsetWidth;
+      
+      // 스크롤 위치 기억
+      const startScrollLeft = tableContainer.scrollLeft;
+      
+      // 현재 리사이징 중인 열 표시
+      resizer.style.backgroundColor = 'rgba(0, 120, 215, 0.5)';
+      document.body.style.cursor = 'col-resize';
+      
+      // 마우스 이동 핸들러
+      function onMouseMove(e) {
+        // 새 너비 계산 (최소 50px)
+        const widthChange = e.pageX - startX;
+        const newWidth = Math.max(80, startWidth + widthChange);
+        
+        // 열 너비 설정
+        th.style.width = newWidth + 'px';
+        
+        // 전체 테이블 너비 업데이트
+        const newTableWidth = tableStartWidth + (newWidth - startWidth);
+        table.style.width = newTableWidth + 'px';
+        
+        // 스크롤 위치 조정 (마우스 위치를 따라가도록)
+        if (widthChange > 0) {
+          tableContainer.scrollLeft = startScrollLeft + widthChange;
         }
       }
-    }
+      
+      // 마우스 업 핸들러
+      function onMouseUp() {
+        // 마우스 이동/업 이벤트 해제
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        
+        // 커서 및 리사이저 스타일 초기화
+        document.body.style.cursor = '';
+        resizer.style.backgroundColor = 'transparent';
+        
+        // 너비 저장
+        const fieldName = th.getAttribute('data-field');
+        if (fieldName) {
+          try {
+            const columnWidths = JSON.parse(localStorage.getItem('tableColumnWidths') || '{}');
+            columnWidths[fieldName] = th.offsetWidth;
+            localStorage.setItem('tableColumnWidths', JSON.stringify(columnWidths));
+          } catch (err) {
+            console.error('열 너비 저장 오류:', err);
+          }
+        }
+        
+        // 테이블 레이아웃 저장
+        saveTableLayout();
+      }
+      
+      // 이벤트 리스너 등록
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+    
+    // 리사이저를 헤더에 추가
+    th.style.position = 'relative';
+    th.appendChild(resizer);
+  });
+}
 
-// 전체 화면 모드 토글
+// 테이블 레이아웃 저장 함수 개선
+function saveTableLayout() {
+  try {
+    // 테이블 전체 너비 및 각 열 너비 저장
+    const table = document.getElementById('editableScheduleTable');
+    if (!table) return;
+    
+    // 열 너비 정보 수집
+    const columnWidths = {};
+    const headers = table.querySelectorAll('th');
+    
+    headers.forEach(th => {
+      const fieldName = th.getAttribute('data-field');
+      if (fieldName) {
+        columnWidths[fieldName] = th.offsetWidth;
+      }
+    });
+    
+    // 로컬 스토리지에 저장
+    localStorage.setItem('tableColumnWidths', JSON.stringify(columnWidths));
+    
+    // Firebase에도 저장
+    const tableLayout = {
+      columnWidths: columnWidths,
+      tableWidth: table.offsetWidth,
+      lastUpdate: new Date().toISOString()
+    };
+    
+    db.ref("tableLayout").set(tableLayout)
+      .then(() => {
+        console.log("테이블 레이아웃 저장 완료");
+      })
+      .catch(err => {
+        console.error("테이블 레이아웃 저장 오류:", err);
+      });
+  } catch (err) {
+    console.error("테이블 레이아웃 저장 준비 오류:", err);
+  }
+}
+
+// 테이블 레이아웃 로드 함수 개선
+function loadTableLayout() {
+  return db.ref("tableLayout").once("value")
+    .then(snap => {
+      if (snap.exists()) {
+        const layout = snap.val();
+        if (layout.columnWidths) {
+          // 로컬 스토리지에 저장
+          localStorage.setItem('tableColumnWidths', JSON.stringify(layout.columnWidths));
+          
+          // 테이블에 레이아웃 적용
+          const table = document.getElementById('editableScheduleTable');
+          if (table && layout.tableWidth) {
+            table.style.width = layout.tableWidth + 'px';
+            table.style.minWidth = layout.tableWidth + 'px';
+            
+            // 각 열에 너비 적용
+            const headers = table.querySelectorAll('th');
+            headers.forEach(th => {
+              const fieldName = th.getAttribute('data-field');
+              if (fieldName && layout.columnWidths[fieldName]) {
+                th.style.width = layout.columnWidths[fieldName] + 'px';
+                th.style.minWidth = layout.columnWidths[fieldName] + 'px';
+              }
+            });
+          }
+          
+          console.log("테이블 레이아웃 로드 완료");
+          return true;
+        }
+      }
+      return false;
+    })
+    .catch(err => {
+      console.error("테이블 레이아웃 로드 오류:", err);
+      return false;
+    });
+}
+
+// 전체화면 모드 토글 함수 개선
 function toggleFullscreenTable() {
   const container = document.getElementById('adminScheduleListPane');
+  const tableContainer = document.getElementById('scheduleTableContainer');
   const icon = document.getElementById('fullscreenIcon');
   
   if (fullscreenMode) {
@@ -3821,6 +4177,12 @@ function toggleFullscreenTable() {
     container.classList.remove('fullscreen-table');
     icon.textContent = '⛶';
     fullscreenMode = false;
+    
+    // 기존 하단 컨트롤 제거
+    const existingControls = container.querySelector('.bottom-controls');
+    if (existingControls) {
+      existingControls.remove();
+    }
   } else {
     // 전체 화면 시작
     container.classList.add('fullscreen-table');
@@ -3830,8 +4192,18 @@ function toggleFullscreenTable() {
     // 전체화면에서 하단 버튼 영역 추가
     const bottomControls = document.createElement('div');
     bottomControls.className = 'bottom-controls';
+    bottomControls.style.position = 'fixed';
+    bottomControls.style.bottom = '0';
+    bottomControls.style.left = '0';
+    bottomControls.style.right = '0';
+    bottomControls.style.padding = '10px 20px';
+    bottomControls.style.backgroundColor = '#fff';
+    bottomControls.style.borderTop = '1px solid #ddd';
+    bottomControls.style.textAlign = 'right';
+    bottomControls.style.zIndex = '1001';
+    
     bottomControls.innerHTML = `
-      <button onclick="saveScheduleTable()" class="admin-btn" style="background:#27ae60;">
+      <button onclick="saveScheduleTable()" class="admin-btn" style="background:#27ae60; margin-right: 10px;">
         💾 변경사항 저장
       </button>
       <button onclick="toggleFullscreenTable()" class="admin-btn">
@@ -3839,25 +4211,82 @@ function toggleFullscreenTable() {
       </button>
     `;
     
-    // 이미 있는 경우 제거 후 추가
-    const existingControls = container.querySelector('.bottom-controls');
-    if (existingControls) {
-      existingControls.remove();
-    }
-    
     container.appendChild(bottomControls);
+    
+    // 테이블 컨테이너 높이 조정 (버튼이 가려지지 않도록)
+    if (tableContainer) {
+      tableContainer.style.maxHeight = 'calc(100vh - 150px)';
+    }
   }
   
-  // 스크롤 위치 초기화 및 테이블 리사이징 설정 갱신
+  // 리사이징 핸들러 재설정 및 스크롤 초기화
   setTimeout(() => {
-    const tableContainer = document.getElementById('scheduleTableContainer');
+    setupTableResizing();
     if (tableContainer) {
       tableContainer.scrollTop = 0;
-      tableContainer.scrollLeft = 0;
-      setupTableResizing();
     }
   }, 100);
 }
+
+// 테이블 컨테이너 스타일 동적 설정
+function enhanceTableContainer() {
+  const tableContainer = document.getElementById('scheduleTableContainer');
+  const table = document.getElementById('editableScheduleTable');
+  
+  if (tableContainer && table) {
+    // 컨테이너 스타일 설정
+    tableContainer.style.overflowX = 'auto';
+    tableContainer.style.width = '100%';
+    tableContainer.style.border = '1px solid #ddd';
+    tableContainer.style.borderRadius = '4px';
+    tableContainer.style.position = 'relative';
+    
+    // 전체화면 모드에 따른 높이 조정
+    if (fullscreenMode) {
+      tableContainer.style.maxHeight = 'calc(100vh - 150px)';
+    } else {
+      tableContainer.style.maxHeight = 'calc(80vh - 200px)';
+    }
+    
+    // 테이블 스타일 설정
+    table.style.borderCollapse = 'collapse';
+  }
+}
+
+// drawScheduleList 함수 끝에 추가할 코드
+function applyTableEnhancements() {
+  // 컨테이너 스타일 설정
+  enhanceTableContainer();
+  
+  // 테이블 리사이징 설정
+  setupTableResizing();
+  
+  // 추가 스타일 설정 - CSS만으로 해결이 어려운 동적 스타일
+  const table = document.getElementById('editableScheduleTable');
+  if (table) {
+    // 테이블 내 모든 입력 필드 스타일 일관성 유지
+    const inputs = table.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+      input.style.width = '100%';
+      input.style.padding = '4px';
+      input.style.boxSizing = 'border-box';
+      input.style.border = '1px solid #ddd';
+      input.style.borderRadius = '4px';
+    });
+    
+    // 특정 필드 스타일 조정
+    const textareas = table.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+      textarea.style.minHeight = '60px';
+      textarea.style.resize = 'vertical';
+    });
+  }
+}
+
+// 이 함수를 drawScheduleList 함수 마지막에 호출
+// 마지막 줄에 다음을 추가: applyTableEnhancements();
+
+
 
 function setDefaultAccessHistoryDates() {
   const today = new Date();
@@ -4975,7 +5404,207 @@ function createHullCell(sch, tr) {
 }
 
 // PO 번호 셀 생성 함수
-function createPoNoCell(sch, tr) {
-  const cell = createEditableCell(sch, "poNo", tr, false);
+function createAsNoCell(sch, tr) {
+  const cell = createEditableCell(sch, "asNo", tr, false);
   return cell;
+}
+
+// main.js 파일에 새로 추가할 함수
+
+// 단순 저장 기능 (상태 변경 없이 입력값만 저장)
+function saveScheduleOnly() {
+  const sDate = document.getElementById("modalStartDate").value;
+  const eDate = document.getElementById("modalEndDate").value;
+  const imoNo = document.getElementById("modalIMONo").value.trim();
+  const shipOwner = document.getElementById("modalShipOwner").value.trim();
+  const shipName = document.getElementById("modalLine").value.trim();
+  const hullNo = document.getElementById("modalHullNo").value.trim();
+  const regionVal = document.getElementById("modalRegion").value.trim();
+  const workContent = document.getElementById("modalDetails").value.trim();
+  const transferMsg = document.getElementById("modalMessage").value.trim();
+  const isUnavailable = document.getElementById("modalUnavailable").checked;
+
+ // AS No. 값 가져오기 추가
+  const asNoVal = document.getElementById("modalAsNo").value.trim();
+  
+  // 국가 값 가져오기 추가
+  const countryVal = document.getElementById("modalCountry").value.trim();  
+
+
+  // ETA, ETB, ETD 값 가져오기
+  const etaVal = document.getElementById("modalETA").value;
+  const etbVal = document.getElementById("modalETB").value;
+  const etdVal = document.getElementById("modalETD").value;
+  
+  if(!sDate || !eDate){ 
+    alert("시작/종료일을 입력하세요"); 
+    return; 
+  }
+  
+  if(sDate > eDate){ 
+    alert("종료일이 시작일보다 빠릅니다."); 
+    return; 
+  }
+  
+  let mainUserId = (document.getElementById("modalUserRow").style.display !== "none") ? 
+    document.getElementById("modalUserSelect").value : currentUid;
+  
+  const extraContainer = document.getElementById("additionalEngineerRows");
+  const extraSelects = extraContainer.querySelectorAll("select");
+  
+  const managerId = isUnavailable ? '' : document.getElementById("modalManagerSelect").value;
+  
+  if(editingScheduleId) {
+    const idx = schedules.findIndex(x => x.id === editingScheduleId);
+    if(idx > -1) {
+      if(!canAccessSchedule(schedules[idx])){ 
+        alert("수정 권한 없음"); 
+        return; 
+      }
+      
+      const oldSch = { ...schedules[idx] };
+      
+      // 기존 상태 유지 (상태 변경없이 데이터만 업데이트)
+      const currentStatus = schedules[idx].status || "일정 등록";
+      
+      schedules[idx].userId = mainUserId;
+      schedules[idx].startDate = sDate;
+      schedules[idx].endDate = eDate;
+      schedules[idx].imoNo = imoNo;
+      schedules[idx].shipOwner = shipOwner;
+      schedules[idx].lineName = shipName;
+      schedules[idx].hullNo = hullNo;
+      schedules[idx].regionName = regionVal;
+      schedules[idx].details = workContent;
+      schedules[idx].message = transferMsg;
+      schedules[idx].unavailable = isUnavailable;
+      schedules[idx].managerId = managerId;
+
+    
+      // AS No. 저장 추가
+      schedules[idx].asNo = asNoVal;
+      
+      // 국가 저장 추가
+      schedules[idx].country = countryVal;
+      
+      // ETA, ETB, ETD 추가
+      schedules[idx].eta = etaVal;
+      schedules[idx].etb = etbVal;
+      schedules[idx].etd = etdVal;
+      
+      // 상태 유지 (단순 저장이므로 상태 변경 없음)
+      schedules[idx].status = currentStatus;
+      
+      // 추가 엔지니어 처리는 기존과 동일하게 유지
+      extraSelects.forEach(sel => {
+        const uid = sel.value;
+        if(uid){
+          const newId = Date.now() + Math.floor(Math.random() * 100000);
+          schedules.push({
+            id: newId,
+            userId: uid,
+            startDate: sDate,
+            endDate: eDate,
+            imoNo: imoNo,
+            shipOwner: shipOwner,
+            lineName: shipName,
+            hullNo: hullNo,
+            regionName: regionVal,
+            details: workContent,
+            message: transferMsg,
+            unavailable: isUnavailable,
+            managerId: managerId,
+            asNo: asNoVal,      // AS No. 추가
+            country: countryVal, // 국가 추가
+            eta: etaVal,
+            etb: etbVal,
+            etd: etdVal,
+            status: currentStatus // 동일한 상태 적용
+          });
+        }
+      });
+      
+      db.ref("schedules").set(schedules).then(() => { 
+        return loadAllData(); 
+      })
+      .then(() => {
+        recordHistory("단순 저장", currentUid, schedules[idx], oldSch);
+        alert("데이터가 저장되었습니다.");
+        closeModal();
+        refreshCalendar();
+      })
+      .catch(err => {
+        console.error("저장 오류:", err);
+        alert("저장 중 오류가 발생했습니다: " + err.message);
+      });
+    }
+  } else {
+    // 신규 등록 시
+    const newId = Date.now();
+    const newSch = {
+      id: newId,
+      userId: mainUserId,
+      startDate: sDate,
+      endDate: eDate,
+      imoNo: imoNo,
+      shipOwner: shipOwner,
+      lineName: shipName,
+      hullNo: hullNo,
+      regionName: regionVal,
+      details: workContent,
+      message: transferMsg,
+      unavailable: isUnavailable,
+      managerId: managerId,
+      asNo: asNoVal,       // AS No. 추가
+      country: countryVal,  // 국가 추가
+      eta: etaVal,
+      etb: etbVal,
+      etd: etdVal,
+      status: "일정 등록"
+    };
+    schedules.push(newSch);
+    
+    // 추가 엔지니어 처리는 기존과 동일하게 유지
+    extraSelects.forEach(sel => {
+      const uid = sel.value;
+      if(uid){
+        const newId2 = Date.now() + Math.floor(Math.random() * 100000);
+        schedules.push({
+          id: newId2,
+          userId: uid,
+          startDate: sDate,
+          endDate: eDate,
+          imoNo: imoNo,
+          shipOwner: shipOwner,
+          lineName: shipName,
+          hullNo: hullNo,
+          regionName: regionVal,
+          details: workContent,
+          message: transferMsg,
+          unavailable: isUnavailable,
+          managerId: managerId,
+          asNo: asNoVal,       // AS No. 추가
+          country: countryVal,  // 국가 추가
+          eta: etaVal,
+          etb: etbVal,
+          etd: etdVal,
+          status: "일정 등록"
+        });
+      }
+    });
+    
+    db.ref("schedules").set(schedules).then(() => { 
+      return loadAllData(); 
+    })
+    .then(() => {
+      recordHistory("추가", currentUid, newSch);
+      alert("새 일정이 추가되었습니다.");
+      closeModal();
+      refreshCalendar();
+    })
+    .catch(err => {
+      console.error("저장 오류:", err);
+      alert("저장 중 오류가 발생했습니다: " + err.message);
+    });
+  }
 }
