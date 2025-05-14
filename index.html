@@ -1,1170 +1,766 @@
-/* ------------------------------
-       1) 전역 스타일
-    ------------------------------*/
-* { box-sizing: border-box; }
-body {
-  margin: 0; padding: 0;
-  font-family: "Malgun Gothic", sans-serif;
-  font-size: 14px; background: #f7f7f7; color: #333;
-}
-
-/* 헤더 - 최대폭 480px, 가운데 배치, 오른쪽에 AI서비스 버튼 */
-header {
-  background: #2c3e50;
-  color: #ecf0f1;
-  position: relative;
-  padding: 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  text-align: center;
-  max-width: 480px;
-  margin: 0 auto;
-}
-header h1 {
-  margin: 0;
-  font-size: 1.2em;
-}
-header a.ai-service {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: #e67e22;
-  color: #fff;
-  padding: 8px 10px;
-  border-radius: 4px;
-  text-decoration: none;
-  font-size: 0.9em;
-  display: inline-flex;
-  align-items: center;
-  transition: background 0.2s;
-}
-header a.ai-service:hover {
-  background: #d35400;
-}
-header a.ai-service::after {
-  content: "→";
-  margin-left: 4px;
-}
-#container {
-  max-width: 480px; 
-  margin: 0 auto;
-  background: #fff; 
-  min-height: 100vh;
-  box-shadow: 0 0 8px rgba(0,0,0,0.1); 
-  position: relative;
-}
-
-@media (max-width:480px) {
-  body { font-size: 13px; }
-  .month-table th, .month-table td { font-size: 0.7em; }
-  .schedule-bar { font-size: 0.65em; }
-  .schedule-week-item { font-size: 0.7em; }
-}
-
-/* ------------------------------
-       2) 로그인
-    ------------------------------*/
-#login-container { padding: 20px; }
-#login-container h2 { margin-top: 0; font-size: 1em; color: #2c3e50; }
-.login-form { display: flex; flex-direction: column; gap: 10px; }
-.login-form label { font-weight: bold; font-size: 0.85em; color: #555; }
-.login-form input {
-  padding: 8px; border: 1px solid #ccc;
-  border-radius: 4px; font-size: 0.85em;
-}
-.login-form button {
-  background: #2c3e50; color: #ecf0f1;
-  border: none; padding: 10px;
-  border-radius: 4px; font-size: 0.85em;
-  cursor: pointer; transition: background 0.2s;
-}
-.login-form button:hover { background: #34495e; }
-.login-form .reset-pw {
-  background: #c0392b;
-  margin-top: 8px;
-}
-
-/* ------------------------------
-       3) 메인 메뉴
-    ------------------------------*/
-#main-menu {
-  display: none; 
-  border-top: 1px solid #ddd;
-  border-bottom: 1px solid #ddd;
-  background: #fafafa; 
-  overflow-x: auto;
-}
-#main-menu button {
-  flex: 1; padding: 10px;
-  border: none; background: #eee;
-  font-size: 0.8em; cursor: pointer;
-  white-space: nowrap; transition: background 0.2s;
-}
-#main-menu button.active {
-  background: #2c3e50; color: #ecf0f1;
-}
-#main-menu button:hover { background: #ccc; }
-
-/* ------------------------------
-       4) 섹션
-    ------------------------------*/
-section { display: none; padding: 12px; }
-section.active { display: block; }
-
-/* ------------------------------
-       5) 월간 달력
-    ------------------------------*/
-#monthlySection { margin-bottom: 60px; }
-.month-controls {
-  display: flex; justify-content: space-between; margin-bottom: 8px;
-}
-.month-controls button {
-  background: #2c3e50; color: #ecf0f1; border: none;
-  padding: 4px 8px; border-radius: 4px;
-  font-size: 0.8em; cursor: pointer; transition: background 0.2s;
-}
-.month-controls button:hover { background: #34495e; }
-#monthLabel { font-size: 0.9em; font-weight: bold; color: #2c3e50; }
-.month-table {
-  width: 100%; border-collapse: collapse;
-  table-layout: fixed; position: relative; margin-bottom: 10px;
-}
-.month-table th, .month-table td {
-  border: 1px solid #ddd; height: 50px; vertical-align: top;
-  position: relative; text-align: center; font-size: 0.75em; padding: 2px;
-}
-.month-table th {
-  background: #f2f2f2; font-weight: bold; color: #555; height: 35px;
-}
-.day-number {
-  position: absolute; top: 2px; right: 2px;
-  z-index: 2; font-weight: bold; font-size: 0.7em;
-}
-#monthOverlay {
-  position: absolute; left: 0; top: 0; right: 0; bottom: 0;
-  pointer-events: none;
-}
-.schedule-bar {
-  position: absolute; height: 16px; color: #fff;
-  border-radius: 4px; font-size: 0.7em; padding: 2px 4px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2); cursor: pointer;
-  pointer-events: auto; z-index: 1; background: #999;
-  transition: opacity 0.2s;
-}
-.schedule-bar:hover { opacity: 0.8; }
-
-/* ------------------------------
-       6) 주간 달력
-    ------------------------------*/
-.week-controls {
-  display: flex; justify-content: space-between; margin-bottom: 8px;
-}
-.week-controls button {
-  background: #2c3e50; color: #ecf0f1; border: none;
-  padding: 4px 8px; font-size: 0.8em; border-radius: 4px;
-  cursor: pointer; transition: background 0.2s;
-}
-.week-controls button:hover { background: #34495e; }
-#weekLabel { font-size: 0.9em; font-weight: bold; color: #2c3e50; }
-.week-list { display: flex; flex-direction: column; gap: 8px; }
-.week-day-block {
-  border: 1px solid #ddd; padding: 5px; position: relative;
-  font-size: 0.75em; background: #fafafa; border-radius: 4px;
-}
-.schedule-week-item {
-  display: block; background: #fffbe5; border: 1px solid #ddd;
-  border-radius: 4px; margin-bottom: 6px; padding: 4px; position: relative;
-  font-size: 0.75em; cursor: pointer; min-width: 120px;
-  transition: background 0.2s;
-}
-.schedule-week-item:hover { background: #fff9cc; }
-.schedule-color-bar {
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 4px; border-radius: 4px 0 0 4px; background: #999;
-}
-.schedule-week-content {
-  margin-left: 6px; padding-left: 4px;
-}
-
-/* ------------------------------
-       7) 관리자 페이지
-    ------------------------------*/
-.admin-menu {
-  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
-}
-.admin-menu button {
-  background: #2c3e50; color: #ecf0f1;
-  border: none; border-radius: 4px; padding: 6px;
-  font-size: 0.75em; cursor: pointer; transition: background 0.2s;
-}
-.admin-menu button:hover { background: #34495e; }
-.admin-pane {
-  display: none; 
-  border: 1px solid #ddd; 
-  padding: 8px;
-  margin-bottom: 10px; 
-  border-radius: 4px; 
-  background: #fafafa;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  width: 100%;
-  overflow-x: hidden;
-}
-.admin-pane.active { display: block; }
-.admin-pane h4 {
-  margin-top: 0; font-size: 0.9em;
-  border-bottom: 1px solid #ddd; padding-bottom: 4px;
-  margin-bottom: 8px; color: #2c3e50;
-}
-.admin-form-row { margin-bottom: 6px; }
-.admin-form-row label {
-  display: block; font-size: 0.75em; font-weight: bold; margin-bottom: 2px;
-}
-.admin-form-row input,
-.admin-form-row select,
-.admin-form-row textarea {
-  width: 100%;
-  padding: 6px; 
-  font-size: 0.75em;
-  border: 1px solid #ccc; 
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.75em;
-  margin-bottom: 8px;
-  table-layout: auto;
-  word-break: break-word;
-}
-.admin-table th, .admin-table td {
-  border: 1px solid #ddd; padding: 4px; text-align: center;
-}
-.admin-table th {
-  background: #f2f2f2; font-weight: bold; color: #333;
-}
-.admin-btn {
-  background: #2c3e50; color: #ecf0f1;
-  border: none; padding: 3px 6px; font-size: 0.75em;
-  border-radius: 4px; cursor: pointer; transition: background 0.2s;
-}
-.admin-btn:hover { background: #34495e; }
-
-/* ------------------------------
-       8) 스케줄 모달
-    ------------------------------*/
-#modal-background {
-  display: none; position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4); z-index: 999;
-}
-.modal {
-  background: #fff;
-  width: 90%;
-  max-width: 420px;
-  margin: 20px auto;
-  padding: 12px;
-  border-radius: 6px;
-  position: relative;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-}
-.modal h3 {
-  margin: 0 0 8px; font-size: 0.9em; color: #2c3e50;
-  border-bottom: 1px solid #ddd; padding-bottom: 4px;
-}
-#scheduleStatusLabel {
-  position: absolute;
-  top: 10px;
-  right: 40px; /* X 버튼(오른쪽 10px)과 겹치지 않도록 오른쪽에서 40px 떨어지게 함 */
-  font-size: 0.9em;
-  color: #999;
-}
-.modal-row { margin-bottom: 6px; }
-.modal-row label {
-  display: block; font-size: 0.75em; font-weight: bold;
-  margin-bottom: 2px; color: #555;
-}
-/* 모달 버튼 영역 - 두 줄로 나눔: 첫 줄에는 주 작업 버튼, 두번째 줄에는 이메일 발송과 타임 테이블 */
-.modal-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-.modal-buttons .primary-buttons,
-.modal-buttons .secondary-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-.modal-buttons button {
-  background: #2c3e50;
-  color: #ecf0f1;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-size: 0.85em;
-  cursor: pointer;
-  transition: background 0.3s, transform 0.3s;
-  white-space: nowrap;
-}
-.modal-buttons button:hover {
-  background: #34495e;
-  transform: translateY(-1px);
-}
-
-/* ------------------------------
-       9) 유저 수정 모달
-    ------------------------------*/
-#modalUserEditBg {
-  display: none; position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4); z-index: 999;
-}
-#userEditModal {
-  background: #fff; width: 90%; max-width: 420px;
-  margin: 100px auto 0; padding: 12px; border-radius: 6px;
-  position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-}
-#userEditModal h3 {
-  margin: 0 0 8px; font-size: 0.9em; color: #2c3e50;
-  border-bottom: 1px solid #ddd; padding-bottom: 4px;
-}
-
-/* ------------------------------
-       10) 스케줄 목록 표 (좌우 스크롤 적용)
-         스케줄 목록만 좌우 스크롤이 적용되도록 함
-    ------------------------------*/
-.schedule-list-container {
-  width: 100%;
-  overflow-x: auto;
-  margin-bottom: 15px;
-}
-
-.schedule-list-container table {
-  min-width: 1000px; /* 최소 너비 설정 - 화면보다 넓게 설정하여 스크롤 생성 */
-  width: 100%;
-}
-/* -----------------------------------------
-    PC 버전 모드 스타일 (화면 폭 2배 적용 + 20% 확대)
------------------------------------------- */
-.pc-version header,
-.pc-version #container {
-  max-width: 960px;
-  font-size: 1.2em; /* 20% 크기 확대 */
-}
-
-.pc-version .modal {
-  max-width: 500px; /* 모달 크기도 확대 */
-}
-
-.pc-version .admin-table,
-.pc-version .modal-row input,
-.pc-version .modal-row textarea,
-.pc-version .modal-row select {
-  font-size: 1em; /* PC 모드에서 입력 필드 크기 확대 */
-}
-
-.pc-version .schedule-bar {
-  height: 19px; /* 일정 바 높이 증가 */
-}
-
-/* 기존 PC 버전 관련 스타일 */
-#monthCompanyFilter, #weekCompanyFilter {
-  padding: 4px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 0.85em;
-}
-
-#adminAccessHistoryPane {
-  border: 1px solid #ddd;
-  padding: 10px;
-  border-radius: 4px;
-  background: #fafafa;
-  margin-bottom: 10px;
-}
-
-#adminAccessHistoryPane.active {
-  display: block;
-}
-
-#adminAccessHistoryPane h4 {
-  margin-top: 0;
-  font-size: 0.9em;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 4px;
-  margin-bottom: 8px;
-  color: #2c3e50;
-}
-
-#adminAccessHistoryBody tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-
-#adminAccessHistoryBody tr:hover {
-  background-color: #e9e9e9;
-}
-/* PC 버전 특화 스타일 */
-.pc-version .schedule-list-container {
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-.pc-version .schedule-list-container::-webkit-scrollbar {
-  height: 8px;
-}
-
-.pc-version .schedule-list-container::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-.pc-version .schedule-list-container::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-/* ------------------------------
-       11) 히스토리 테이블 스타일 (좌우 스크롤 적용)
-    ------------------------------*/
-/* 히스토리 테이블 컨테이너 스타일 */
-#adminHistoryPane, #statusHistoryPane {
-  overflow-x: auto; /* 가로 스크롤 추가 */
-  max-width: 100%; /* 컨테이너 최대 폭 제한 */
-  padding-bottom: 12px; /* 스크롤바 여유 공간 */
-}
-
-/* 히스토리 테이블 스타일 */
-#adminHistoryPane table, #statusHistoryPane table {
-  min-width: 1500px; /* 더 넓게 설정하여 충분한 스크롤 영역 확보 */
-  table-layout: fixed; /* 고정 테이블 레이아웃 */
-  width: auto; /* 테이블 너비 자동 설정 */
-  margin-bottom: 15px; /* 아래 여백 */
-}
-
-/* 테이블 헤더 고정 스타일 */
-#adminHistoryPane thead, #statusHistoryPane thead {
-  position: sticky;
-  top: 0;
-  background-color: #f2f2f2;
-  z-index: 1;
-  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
-}
-
-/* 테이블 셀 스타일 */
-#adminHistoryPane th, #adminHistoryPane td,
-#statusHistoryPane th, #statusHistoryPane td {
-  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
-  overflow: hidden; /* 넘치는 텍스트 숨김 */
-  text-overflow: ellipsis; /* 넘치는 텍스트는 ...으로 표시 */
-  padding: 6px 8px; /* 셀 내부 여백 */
-  min-width: 100px; /* 최소 너비 */
-  max-width: 150px; /* 최대 너비 */
-}
-
-/* 더 좁은 셀: 시간, 구분 등 */
-#adminHistoryPane th:first-child, #adminHistoryPane td:first-child,
-#statusHistoryPane th:first-child, #statusHistoryPane td:first-child {
-  width: 90px;
-  min-width: 90px;
-  max-width: 90px;
-}
-
-/* 더 넓은 셀: 상세 내용 등 */
-#adminHistoryPane th:nth-child(8), #adminHistoryPane td:nth-child(8),
-#statusHistoryPane th:nth-child(8), #statusHistoryPane td:nth-child(8) {
-  min-width: 120px; /* 업체명 */
-}
-
-/* 짝수/홀수 행 구분 */
-#adminHistoryPane tbody tr:nth-child(even),
-#statusHistoryPane tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-#adminHistoryPane tbody tr:hover,
-#statusHistoryPane tbody tr:hover {
-  background-color: #f0f7ff;
-}
-
-/* 변경 내용 강조 표시 */
-#adminHistoryPane td[data-changed="true"],
-#statusHistoryPane td[data-changed="true"] {
-  background-color: #fffacd; /* 연한 노란색 */
-  font-weight: bold;
-}
-
-/* 긴 텍스트를 가진 셀에 마우스 오버 시 툴팁 효과 */
-#adminHistoryPane td, #statusHistoryPane td {
-  position: relative;
-}
-
-#adminHistoryPane td:hover::after, 
-#statusHistoryPane td:hover::after {
-  content: attr(title);
-  position: absolute;
-  left: 0;
-  top: 100%;
-  background: #fff;
-  border: 1px solid #ddd;
-  padding: 5px 8px;
-  white-space: normal;
-  max-width: 300px;
-  z-index: 10;
-  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-  word-break: break-word;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #333;
-}
-
-/* 히스토리 제목 영역 */
-#adminHistoryPane h4, #statusHistoryPane h4 {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-/* 히스토리 필터 영역 */
-.history-filters {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.history-filters select, 
-.history-filters input {
-  padding: 4px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.85em;
-}
-
-.history-filters button {
-  background: #2c3e50;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 0.85em;
-  cursor: pointer;
-}
-
-/* 스크롤바 스타일 커스텀 (옵션) */
-#adminHistoryPane::-webkit-scrollbar, 
-#statusHistoryPane::-webkit-scrollbar {
-  height: 8px;
-  background-color: #f1f1f1;
-}
-
-#adminHistoryPane::-webkit-scrollbar-thumb, 
-#statusHistoryPane::-webkit-scrollbar-thumb {
-  background-color: #888;
-  border-radius: 4px;
-}
-
-#adminHistoryPane::-webkit-scrollbar-thumb:hover, 
-#statusHistoryPane::-webkit-scrollbar-thumb:hover {
-  background-color: #666;
-}
-
-/* 엑셀 다운로드 버튼 개선 */
-.excel-download-btn {
-  background: #27ae60;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 10px;
-  font-size: 0.85em;
-  cursor: pointer;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.excel-download-btn:hover {
-  background: #219653;
-}
-
-.excel-download-btn::before {
-  content: "📥";
-  font-size: 1.1em;
-}
-
-/* 시작일/종료일, ETA/ETB/ETD 스타일 */
-.schedule-date-container {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-}
-
-.schedule-date-item {
-  flex: 1;
-}
-
-.schedule-date-item label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 0.75em;
-  font-weight: bold;
-}
-
-.schedule-date-item input {
-  width: 100%;
-  padding: 6px;
-  font-size: 0.75em;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-input[type="datetime-local"] {
-  padding: 5px;
-  font-size: 0.75em;
-}
-
-/* 날짜 입력 필드 스타일 수정 */
-.date-input-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  width: 100%;
-}
-
-.date-input-field {
-  flex: 1;
-  min-width: 140px;
-}
-
-.date-input-field label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 0.75em;
-  font-weight: bold;
-}
-
-.date-input-field input {
-  width: 100%;
-  padding: 5px;
-  box-sizing: border-box;
-}
-
-@media (max-width: 480px) {
-  .date-input-container {
-    flex-direction: column;
-  }
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- 제목 변경 -->
+  <title>S&SYS SERVICE MANAGEMENT</title>
+<link rel="stylesheet" href="style.css?v=1.0.5">
   
-  .date-input-field {
-    width: 100%;
-  }
-}
+  <!-- EmailJS SDK (클라이언트 사이드) -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <script type="text/javascript">
+    (function(){
+      emailjs.init("NOmE935NJtC5OJy49"); // 실제 Public Key로 대체
+    })();
+  </script>
+</head>
+<body>
+  <header>
+    <!-- 헤더 제목 변경 -->
+    <h1>S&SYS SERVICE MANAGEMENT</h1>
+  </header>
 
-.three-date-row {
-  display: flex;
-  flex-wrap: nowrap; /* 한 줄에 유지 */
-  gap: 5px;        /* 필요한 경우 간격 조정 */
-}
-.three-date-row .date-input-field {
-  flex: 1;
-  min-width: 0;    /* 필드가 컨테이너 폭에 맞게 축소됨 */
-}
+  <div id="container">
+    <!-- (A) 로그인 화면 -->
+    <div id="login-container">
+      <div style="text-align:center; margin-bottom:10px;">
+        <img src="https://media.licdn.com/dms/image/v2/C4E0BAQGQyZvSSEAV1Q/company-logo_200_200/company-logo_200_200/0/1630615026721?e=2147483647&v=beta&t=w_YW_KTfyfsmEyqVX7D69MStbrfMEIjYBII16M32JuA" alt="S&SYS 로고" style="max-width:120px;">
+      </div>
+      <h2>로그인</h2>
+      <div class="login-form">
+        <label>이메일</label>
+        <input type="text" id="loginEmail" placeholder="예: user@example.com"/>
+        <label>비밀번호</label>
+        <input type="password" id="loginPw" placeholder="********" onkeydown="if(event.key==='Enter'){ login(); }"/>
+        <button onclick="login()">로그인</button>
+        <button class="reset-pw" onclick="resetPassword()">비밀번호 변경</button>
+      </div>
+    </div>
 
-.modal .modal-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: transparent;
-  border: none;
-  font-size: 1.5em;
-  cursor: pointer;
-  line-height: 1;
-  color: #333;
-}
-.modal .modal-close:hover {
-  color: #000;
-}
-#monthManagerFilter,
-#weekManagerFilter {
-  padding: 4px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 0.85em;
-}
-#modalStartDate,
-#modalEndDate,
-#modalETA,
-#modalETB,
-#modalETD {
-  font-size: 13px;
-}
-#shipScheduleModal .admin-table {
-  font-size: 0.65em;
-}
-#monthShipFilter {
-  padding: 4px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 0.85em;
-}
-@media (max-width: 480px) {
-  #monthCompanyFilterContainer {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 2px;
-    font-size: 0.65em;  /* 글씨 크기 축소 */
-    width: 100%;
-    overflow: hidden;
-  }
-  .filter-field {
-    flex: 1 1 33%;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-  }
-  .filter-field label {
-    margin-right: 2px;
-    white-space: nowrap;
-  }
-  .filter-field select,
-  .filter-field input {
-    flex: 1;
-    padding: 2px;
-    box-sizing: border-box;
-  }
-}
+    <!-- (B) 메인 메뉴 (로그인 후) -->
+<nav id="main-menu">
+  <button id="btnMonthly" onclick="showSection('monthly')">월간 달력</button>
+  <button id="btnWeekly" onclick="showSection('weekly')">주간 달력</button>
+  <!-- 본사 권한일 경우 현황 버튼 표시 -->
+  <button id="btnStatus" onclick="showSection('status')" style="display:none;">현황</button>
+  <!-- 관리자만 보이게 -->
+  <button id="btnAdmin" onclick="showSection('admin')" style="display:none;">관리자 페이지</button>
+  <button onclick="window.open('https://snsys-qa.neoali.com/', '_blank')" style="background:#87CEEB; color:#fff;">AI 서비스</button>
+</nav>
 
-@media (max-width: 480px) {
-  .modal-row.flex-fields {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 4px;
-    width: 100%;
-  }
-  .modal-row.flex-fields > div {
-    flex: 1;
-    min-width: 0;
-  }
-  .modal-row.flex-fields label {
-    font-size: 0.75em;
-    white-space: nowrap;
-  }
-  .modal-row.flex-fields input {
-    font-size: 0.75em;
-    width: 100%;
-    box-sizing: border-box;
-  }
-}
-/* 수정된 테이블 스타일 */
-.editable-table td[contenteditable="true"] {
-    padding: 4px;
-    min-height: 24px;
-    border: 1px solid #ddd;
-    background-color: #f9f9f9;
-    transition: background-color 0.2s;
-    max-height: 100px;  /* 셀 최대 높이 제한 */
-    overflow-y: auto;   /* 세로 스크롤 적용 */
-    white-space: pre-wrap; /* 줄바꿈 허용 */
-    word-break: break-word; /* 단어 내에서 줄바꿈 허용 */
-}
 
-.editable-table td[contenteditable="true"]:hover {
-    background-color: #f0f0f0;
-}
+    <!-- (C) 월간 달력 -->
+    <section id="monthlySection">
+      <div class="month-controls">
+        <button onclick="prevMonth()">&lt; 이전달</button>
+        <span id="monthLabel"></span>
+        <button onclick="nextMonth()">다음달 &gt;</button>
+      </div>
+<div id="monthCompanyFilterContainer" style="margin-bottom:8px; display:flex; gap:4px; align-items:center;">
+  <div class="filter-field">
+    <label for="monthCompanyFilter">업체:</label>
+    <select id="monthCompanyFilter" onchange="refreshCalendar()">
+      <option value="">전체</option>
+    </select>
+  </div>
+  <div class="filter-field">
+    <label for="monthManagerFilter">담당:</label>
+    <select id="monthManagerFilter" onchange="refreshCalendar()">
+      <option value="">전체</option>
+    </select>
+  </div>
+  <div class="filter-field">
+    <label for="monthShipFilter">선박:</label>
+    <input type="text" id="monthShipFilter" placeholder="선박명 입력..." oninput="filterShipNameDropdown()">
+  </div>
+</div>
+<div id="shipDropdownContainer" style="display: none;">
+  <ul id="shipDropdown" style="list-style: none; margin: 0; padding: 0; border: 1px solid #ccc; max-height: 150px; overflow-y: auto;"></ul>
+</div>
 
-.editable-table td[contenteditable="true"]:focus {
-    background-color: #e5f2ff;
-    outline: 2px solid #4a90e2;
-    box-shadow: 0 0 4px rgba(74, 144, 226, 0.3);
-}
 
-/* SHIP NAME, 상세, 전달사항 필드 너비 두 배로 설정 */
-.editable-table th[data-field="shipName"],
-.editable-table th[data-field="details"],
-.editable-table th[data-field="message"] {
-    min-width: 200px !important;
-    max-width: 600px !important;
-    width: 300px !important;
-}
+<div id="shipScheduleModal" style="display: none; position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); z-index: 1000;">
+  <div class="modal" id="shipScheduleModalContent" style="max-width: 500px; margin: 50px auto;">
+    <button class="modal-close" onclick="closeShipScheduleModal()">×</button>
+    <h3>선박 스케쥴 목록</h3>
+    <div id="shipScheduleListContainer">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Ship Name</th>
+            <th>Hull No.</th>
+            <th>엔지니어</th>
+            <th>본사 담당자</th>
+            <th>시작일</th>
+            <th>종료일</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody id="shipScheduleListBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-.editable-table td[data-field="shipName"],
-.editable-table td[data-field="details"],
-.editable-table td[data-field="message"] {
-    min-width: 200px !important;
-    max-width: 600px !important;
-    width: 300px !important;
-}
 
-/* 긴 텍스트 필드의 스크롤 설정 */
-.editable-table td[data-field="shipName"],
-.editable-table td[data-field="details"],
-.editable-table td[data-field="message"] {
-    max-height: 100px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
 
-/* 스케줄 목록 테이블 컨테이너 스타일 수정 */
-.resizable-table-container {
-    width: 100%;
-    overflow-x: auto; /* 가로 스크롤 추가 */
-    max-height: calc(80vh - 200px); /* 전체화면 모드에서 버튼이 보이도록 높이 조정 */
-    position: relative;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
+      <div style="position:relative;">
+        <table class="month-table">
+          <thead>
+            <tr>
+              <th>일</th>
+              <th>월</th>
+              <th>화</th>
+              <th>수</th>
+              <th>목</th>
+              <th>금</th>
+              <th>토</th>
+            </tr>
+          </thead>
+          <tbody id="monthBody"></tbody>
+        </table>
+        <div id="monthOverlay"></div>
+      </div>
+      <div style="text-align:right; padding:4px;">
+        <input type="checkbox" id="excludeSchedules" onchange="refreshCalendar()">
+        <label for="excludeSchedules">서비스 불가/취소 일정 제외</label>
+      </div>
+    </section>
 
-/* 테이블 래퍼 스타일 수정 - 최소 폭 제거 */
-.table-wrapper {
-    width: auto; /* 자동 폭 설정 */
-    min-width: 100%; /* 최소 폭은 컨테이너 너비로 설정 */
-}
 
-th.resizable {
-    position: relative;
-    resize: horizontal;
-    overflow: auto;
-    min-width: 100px;
-    max-width: 300px;
-    word-break: break-word;
-}
 
-/* SHIP NAME, 상세, 전달사항 헤더 너비 조정 */
-th.resizable[data-field="shipName"],
-th.resizable[data-field="details"],
-th.resizable[data-field="message"] {
-    min-width: 200px !important;
-    max-width: 600px !important;
-    width: 300px !important;
-}
 
-th.resizable::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 5px;
-    background-color: #e0e0e0;
-    cursor: col-resize;
-}
 
-/* 텍스트 영역도 스크롤 가능하게 */
-.modal-row textarea {
-    max-height: 150px;
-    overflow-y: auto;
-}
 
-/* SELECT 필드도 스크롤 가능하게 */
-.status-select {
-    max-height: 100px;
-    overflow-y: auto;
-}
-
-/* 풀스크린 모드 */
-.fullscreen-table {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: #fff;
-    z-index: 1000;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-}
-
-.fullscreen-table .resizable-table-container {
-    max-height: calc(100vh - 150px); /* 버튼이 보이도록 높이 조정 */
-    flex: 1;
-}
-
-.fullscreen-controls {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-}
-
-/* 체크박스 스타일 */
-.schedule-checkbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-}
-
-/* 셀렉트 박스 스타일 */
-.status-select {
-    width: 100%;
-    padding: 4px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: #fff;
-}
-
-/* 날짜 입력 필드 */
-.date-input {
-    width: 100%;
-    padding: 4px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-/* 변경된 셀 하이라이트 */
-.cell-modified {
-    background-color: rgba(255, 235, 59, 0.2) !important;
-}
-
-/* 행 작업 버튼 */
-.row-action-btn {
-    padding: 2px 5px;
-    margin: 2px;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 0.8em;
-}
-
-.row-action-btn.delete {
-    background: #e74c3c;
-}
-
-/* 전체화면 모드에서 하단 버튼 영역 스타일 추가 */
-.fullscreen-table .bottom-controls {
-    margin-top: 10px;
-    padding: 10px 0;
-    border-top: 1px solid #eee;
-    background: #fff;
-}
-
-/* 스크롤바 스타일 개선 */
-.resizable-table-container::-webkit-scrollbar {
-    height: 12px;
-    width: 12px;
-    background-color: #f5f5f5;
-}
-
-.resizable-table-container::-webkit-scrollbar-thumb {
-    background-color: #888;
-    border-radius: 10px;
-    border: 3px solid #f5f5f5;
-}
-
-.resizable-table-container::-webkit-scrollbar-thumb:hover {
-    background-color: #555;
-}
-
-/* 테이블 헤더 고정 */
-.editable-table thead,
-.admin-table thead {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background-color: #f2f2f2;
-}
-
-/* 날짜 필드 너비 조정 */
-.editable-table th.resizable[data-field="startDate"],
-.editable-table th.resizable[data-field="endDate"],
-.editable-table th.resizable[data-field="eta"],
-.editable-table th.resizable[data-field="etb"],
-.editable-table th.resizable[data-field="etd"],
-.editable-table th.resizable[data-field="departureDate"] {
-    min-width: 120px;
-    width: 120px;
-}
-
-/* 체크박스 열 너비 조정 */
-.editable-table th.resizable[data-field="unavailable"] {
-    min-width: 80px;
-    width: 80px;
-}
-
-/* 작업 열 너비 조정 */
-.editable-table th.resizable[data-field="action"] {
-    min-width: 120px;
-    width: 120px;
-}
-
-/* 상태 표시줄 스타일 */
-.table-status-bar {
-    margin-top: 10px;
-    padding: 8px;
-    background-color: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.table-status-info {
-    font-size: 0.9em;
-    color: #666;
-}
-
-/* PC 버전에서의 스크롤 개선 */
-.pc-version .resizable-table-container,
-.pc-version .schedule-list-container {
-    max-height: calc(80vh - 180px);
-}
-
-.pc-version .fullscreen-table .resizable-table-container {
-    max-height: calc(100vh - 120px);
-}
-
-/* 관리자 스케줄 테이블과 상태 스케줄 테이블 통일된 스타일 */
-#adminScheduleListBody td,
-#statusScheduleListBody td {
-    white-space: normal;
-    word-break: break-word;
-    vertical-align: top;
-    padding: 6px;
-}
-
-/* 기본적인 테이블 셀 스타일 추가 */
-.editable-table td,
-.admin-table td {
-    padding: 6px 8px;
-}
-
-/* 상태 관련 스케줄 목록 컨테이너도 동일하게 설정 */
-.schedule-list-container {
-    width: 100%;
-    overflow-x: auto;
-    max-height: calc(80vh - 250px);
-    position: relative;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-/* 스크롤바 스타일 통일 */
-.schedule-list-container::-webkit-scrollbar {
-    height: 12px;
-    width: 12px;
-    background-color: #f5f5f5;
-}
-
-.schedule-list-container::-webkit-scrollbar-thumb {
-    background-color: #888;
-    border-radius: 10px;
-    border: 3px solid #f5f5f5;
-}
-
-.schedule-list-container::-webkit-scrollbar-thumb:hover {
-    background-color: #555;
-}
-
-/* 테이블 스크롤 조절 기능 개선 */
-.resizable-table-container {
-  overflow-x: auto !important;
-  max-width: 100% !important;
-  width: 100% !important;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-bottom: 15px;
-}
-
-.editable-table {
-  width: auto !important;
-  min-width: 100% !important;
-  border-collapse: collapse;
-}
-
-.column-resizer {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: col-resize;
-  background-color: transparent;
-  transition: background-color 0.2s;
-}
-
-.column-resizer:hover {
-  background-color: rgba(0, 120, 215, 0.3);
-}
-
-.resizable-table-container::-webkit-scrollbar {
-  height: 12px;
-  width: 12px;
-  background-color: #f5f5f5;
-}
-
-.resizable-table-container::-webkit-scrollbar-thumb {
-  background-color: #888;
-  border-radius: 6px;
-  border: 3px solid #f5f5f5;
-}
-
-.resizable-table-container::-webkit-scrollbar-thumb:hover {
-  background-color: #555;
-}
-
-/* 스크롤 기간 동안 헤더 고정 */
-.editable-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background-color: #f2f2f2;
-  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
-}
-
-/* 흰색 배경으로 통일 */
-.editable-table td input,
-.editable-table td select,
-.editable-table td textarea {
-  background-color: #fff !important;
-  border: 1px solid #ddd !important;
-  padding: 4px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-  /* 테이블 헤더 리사이징 스타일 */
-  #editableScheduleTable th {
-    position: relative;
-    overflow: visible; /* 중요: 오버플로우 허용 */
-    resize: horizontal; /* 브라우저 기본 리사이징 활성화 */
-    overflow: auto; /* 브라우저 기본 리사이징과 함께 사용 */
-    min-width: 50px;
-  }
+    <!-- (D) 주간 달력 -->
+    <section id="weeklySection">
+      <div class="week-controls">
+        <button onclick="prevWeek()">&lt; 이전주</button>
+        <span id="weekLabel"></span>
+        <button onclick="nextWeek()">다음주 &gt;</button>
+      </div>
+<!-- 주간 달력: 업체별 필터 추가 -->
+<div id="weekCompanyFilterContainer" style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
+  <label for="weekCompanyFilter">업체: </label>
+  <select id="weekCompanyFilter" onchange="refreshCalendar()">
+    <option value="">전체</option>
+  </select>
   
-  /* 사용자 정의 리사이저 스타일 */
-  .column-resizer {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 10px; /* 더 넓게 하여 클릭하기 쉽게 */
-    height: 100%;
-    cursor: col-resize;
-    z-index: 100;
-    background-color: transparent;
-  }
+  <!-- 담당자 필터 추가 -->
+  <label for="weekManagerFilter">담당: </label>
+  <select id="weekManagerFilter" onchange="refreshCalendar()">
+    <option value="">전체</option>
+  </select>
+</div>
+
+      <div id="weekList" class="week-list"></div>
+    </section>
+
+<!-- (E) 본사 전용 현황 섹션 -->
+<section id="statusSection">
+  <!-- 현황 메뉴 버튼 -->
+  <div id="status-menu" style="display: flex; gap: 8px; margin-bottom: 10px;">
+    <button id="btnStatusUser" onclick="showStatusPane('user')">유저 목록</button>
+    <button id="btnStatusSchedule" onclick="showStatusPane('schedule')">스케줄 목록</button>
+    <button id="btnStatusHistory" onclick="showStatusPane('history')">변경 히스토리</button>
+  </div>
+  <!-- 유저 목록 판 (읽기 전용, 필터 포함) -->
+  <div id="statusUserPane" class="status-pane" style="display:none;">
+    <div style="margin-bottom:10px;">
+      <label for="statusUserCompanyFilter">업체별 필터: </label>
+      <select id="statusUserCompanyFilter" onchange="drawStatusUserList()">
+        <option value="">전체</option>
+      </select>
+    </div>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>이름</th>
+          <th>이메일</th>
+          <th>권한</th>
+          <th>협력 구분</th>
+          <th>업체</th>
+        </tr>
+      </thead>
+      <tbody id="statusUserListBody"></tbody>
+    </table>
+  </div>
+  <!-- 스케줄 목록 판 (읽기 전용, 기간 설정 및 엑셀 다운로드) -->
+  <div id="statusSchedulePane" class="status-pane" style="display:none;">
+    <div style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
+      <label>조회 시작일</label>
+      <input type="date" id="statusQueryStart">
+      <label>조회 종료일</label>
+      <input type="date" id="statusQueryEnd">
+      <button onclick="drawStatusScheduleList()">조회</button>
+    </div>
+    <div class="schedule-list-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>업체</th>
+            <th>엔지니어</th>
+            <th>기간</th>
+            <th>Ship Name</th>
+            <th>IMO 번호</th>
+            <th>Hull 번호</th>
+            <th>지역</th>
+            <th>담당자</th>
+            <th>상세</th>
+            <th style="text-align:left;">서비스 불가 일정</th>
+            <th>수정</th>
+            <th>삭제</th>
+          </tr>
+        </thead>
+        <!-- 상태 섹션에서는 tbody의 id를 statusScheduleListBody 로 변경 -->
+        <tbody id="statusScheduleListBody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;">
+      <button onclick="downloadExcel()">엑셀 다운로드</button>
+    </div>
+  </div>
+  <!-- 변경 히스토리 판 (읽기 전용, 엑셀 다운로드) -->
+  <div id="statusHistoryPane" class="status-pane" style="display:none;">
+    <button onclick="downloadHistoryExcel()" class="excel-download-btn">히스토리 엑셀 다운로드</button>
   
-  .column-resizer:hover, 
-  .column-resizer.active {
-    background-color: rgba(0, 120, 215, 0.3);
-  }
+    <!-- 히스토리 테이블 컨테이너 -->
+    <div class="history-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th style="width:80px;">시간</th>
+            <th>사용자</th>
+            <th>변경 전 시작일</th>
+            <th>변경 전 종료일</th>
+            <th>변경 후 시작일</th>
+            <th>변경 후 종료일</th>
+            <th>구분</th>
+            <th>업체</th>
+            <th>엔지니어</th>
+            <th>변경 전 Ship Name</th>
+            <th>변경 후 Ship Name</th>
+            <th>변경 전 IMO No.</th>
+            <th>변경 후 IMO No.</th>
+            <th>변경 전 Hull No.</th>
+            <th>변경 후 Hull No.</th>
+            <th>변경 전 지역</th>
+            <th>변경 후 지역</th>
+            <th>담당자</th>
+          </tr>
+        </thead>
+        <tbody id="statusHistoryBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+
+
+
+    <!-- (F) 관리자 페이지 -->
+<section id="adminSection">
+  <div class="admin-menu">
+    <button onclick="showAdminPane('userList')">유저 목록</button>
+    <button onclick="showAdminPane('userRegister')">유저 등록</button>
+    <button onclick="showAdminPane('scheduleList')">스케줄 목록</button>
+    <button onclick="showAdminPane('companyColor')">업체 색상 관리</button>
+    <button onclick="showAdminPane('history')">변경 히스토리</button>
+    <button onclick="showAdminPane('accessHistory')">접속 현황</button>
+  </div>
+
+<!-- 수정된 스케줄 테이블 구조 -->
+<div id="adminScheduleListPane" class="admin-pane">
+    <h4>스케줄 목록</h4>
+    <div class="schedule-controls" style="margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap; justify-content:space-between; align-items:center;">
+        <div style="display:flex; gap:8px; align-items:center;">
+            <label>조회 시작일</label>
+            <input type="date" id="adminQueryStart">
+            <label>조회 종료일</label>
+            <input type="date" id="adminQueryEnd">
+            <button onclick="drawScheduleList()" class="admin-btn">조회</button>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <button onclick="addNewScheduleRow()" class="admin-btn" style="background:#27ae60;">
+                ➕ 필드 추가
+            </button>
+            <button onclick="toggleFullscreenTable()" class="admin-btn" id="fullscreenTableBtn">
+                <span id="fullscreenIcon">⛶</span> 전체화면
+            </button>
+            <button onclick="saveScheduleTable()" class="admin-btn" style="background:#27ae60;">
+                💾 변경사항 저장
+            </button>
+        </div>
+    </div>
+    
+    <!-- 리사이징 가능한 테이블 컨테이너 -->
+    <div id="scheduleTableContainer" class="resizable-table-container">
+        <div id="tableWrapper" class="table-wrapper">
+            <table id="editableScheduleTable" class="admin-table editable-table">
+                <thead>
+                    <tr>
+                        <th data-field="eta" class="resizable">ETA</th>
+                        <th data-field="etb" class="resizable">ETB</th>
+                        <th data-field="etd" class="resizable">ETD</th>
+                        <th data-field="regionName" class="resizable">지역</th>
+                        <th data-field="country" class="resizable">국가</th>
+                        <th data-field="imoNo" class="resizable">IMO 번호</th>
+                        <th data-field="hullNo" class="resizable">HULL 번호</th>
+                        <th data-field="shipName" class="resizable">SHIP NAME</th>
+                        <th data-field="managerId" class="resizable">담당자</th>
+                        <th data-field="company" class="resizable">업체</th>
+                        <th data-field="engineer" class="resizable">엔지니어</th>
+                        <th data-field="asNo" class="resizable">AS NO.</th>
+                        <th data-field="asType" class="resizable">AS 구분</th>
+                        <th data-field="startDate" class="resizable">시작일</th>
+                        <th data-field="endDate" class="resizable">종료일</th>
+                        <th data-field="departureDate" class="resizable">방선일</th>
+                        <th data-field="cancelReason" class="resizable">취소 사유</th>
+                        <th data-field="status" class="resizable">상태</th>
+                        <th data-field="details" class="resizable">상세</th>
+                        <th data-field="message" class="resizable">전달사항</th>
+                        <th data-field="unavailable" class="resizable">서비스 불가</th>
+                        <th data-field="action" class="resizable">작업</th>
+                    </tr>
+                </thead>
+                <tbody id="adminScheduleListBody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div style="margin-top:12px; margin-bottom:50px;">
+        <button onclick="downloadExcel()" class="admin-btn">엑셀 다운로드</button>
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none" onchange="uploadExcel(event)"/>
+        <button onclick="document.getElementById('excelFileInput').click()" class="admin-btn">엑셀 업로드</button>
+    </div>
+</div>
+
+      <!-- 유저 목록 -->
+      <div id="adminUserListPane" class="admin-pane">
+        <h4>유저 목록</h4>
+        <div style="margin-bottom:10px;">
+          <label for="userCompanyFilter">업체별 필터: </label>
+          <select id="userCompanyFilter" onchange="drawUserList()">
+            <option value="">전체</option>
+          </select>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th style="min-width:60px;">이름</th>
+              <th>이메일</th>
+              <th>권한</th>
+              <th>협력 구분</th>
+              <th>업체</th>
+              <th>수정</th>
+              <th>삭제</th>
+            </tr>
+          </thead>
+          <tbody id="adminUserListBody"></tbody>
+        </table>
+      </div>
+
+      <!-- 유저 등록 -->
+      <div id="adminUserRegisterPane" class="admin-pane">
+        <h4>유저 등록</h4>
+        <div class="admin-form-row">
+          <label>권한</label>
+          <select id="adminRegisterRole" onchange="toggleRegisterSubCategory()">
+            <option value="관리자">관리자</option>
+            <option value="본사">본사</option>
+            <option value="협력">협력</option>
+          </select>
+        </div>
+        <!-- 협력 구분 (주요/기타) - 협력 권한일 경우 표시 -->
+        <div class="admin-form-row" id="adminRegisterSubCategoryRow" style="display:none;">
+          <label>협력 구분</label>
+          <select id="adminRegisterSubCategory">
+            <option value="주요">주요</option>
+            <option value="기타" selected>기타</option>
+          </select>
+        </div>
+        <div class="admin-form-row">
+          <label>이름(표시용)</label>
+          <input type="text" id="adminRegisterName" placeholder="예: 홍길동"/>
+        </div>
+        <div class="admin-form-row">
+          <label>이메일</label>
+          <input type="email" id="adminRegisterEmail" placeholder="예: user@example.com"/>
+        </div>
+        <div class="admin-form-row">
+          <label>비밀번호</label>
+          <input type="password" id="adminRegisterPw" placeholder="********"/>
+        </div>
+        <div class="admin-form-row">
+          <label>업체명</label>
+          <input type="text" id="adminRegisterCompany" placeholder="예: 본사, ○○업체 등"/>
+        </div>
+        <button onclick="createUser()">등록하기</button>
+      </div>
+
+      <!-- 업체 색상 관리 -->
+<div id="adminCompanyColorPane" class="admin-pane">
+  <h4>업체 색상 관리</h4>
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>업체명</th>
+        <th>기본(normal)</th>
+        <th>취소(cancel)</th>
+        <th>확정(final)</th>
+        <th>불가(unavailable)</th>
+        <th>완료(completed)</th>
+        <th>삭제</th>
+      </tr>
+    </thead>
+    <tbody id="companyColorBody"></tbody>
+  </table>
+  <!-- 색상 지정 입력란들: 업체명 선택, 기본/취소/확정/불가 색상 -->
+  <div class="admin-form-row">
+    <label>업체명 선택</label>
+    <select id="selectCompanyName" onchange="onSelectCompanyNameChange()"></select>
+  </div>
+  <div class="admin-form-row">
+    <label>기본(normal) 색상</label>
+    <input type="color" id="inputCompanyColorNormal" value="#999999"/>
+  </div>
+  <div class="admin-form-row">
+    <label>취소(cancel) 색상</label>
+    <input type="color" id="inputCompanyColorCancel" value="#ff0000"/>
+  </div>
+  <div class="admin-form-row">
+    <label>확정(final) 색상</label>
+    <input type="color" id="inputCompanyColorFinal" value="#00ff00"/>
+  </div>
+  <div class="admin-form-row">
+    <label>불가(unavailable) 색상</label>
+    <input type="color" id="inputCompanyColorUnavailable" value="#cccccc"/>
+  </div>
+  <div class="admin-form-row">
+    <label>완료(completed) 색상</label>
+    <input type="color" id="inputCompanyColorCompleted" value="#3498db"/>
+  </div>
+  <!-- 추가/수정 버튼은 색상 입력란 아래에 위치 -->
+  <button onclick="saveCompanyColor()">추가/수정</button>
+</div>
+
+
+      <!-- 변경 히스토리 -->
+      <div id="adminHistoryPane" class="admin-pane">
+        <h4>변경 히스토리</h4>
+        <div class="admin-form-row">
+          <label>히스토리 최대 개수</label>
+          <input type="number" id="historyLimitInput" style="width:120px;" />
+        </div>
+        <button onclick="setHistoryLimit()">설정 저장</button>
+        <button onclick="downloadHistoryExcel()" class="excel-download-btn">히스토리 엑셀 다운로드</button>
+        
+        <!-- 히스토리 테이블 컨테이너 -->
+        <div class="history-table-container" style="margin-top:10px; clear:both;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width:80px;">시간</th>
+                <th>사용자</th>
+                <th>변경 전 시작일</th>
+                <th>변경 전 종료일</th>
+                <th>변경 후 시작일</th>
+                <th>변경 후 종료일</th>
+                <th>구분</th>
+                <th>업체</th>
+                <th>엔지니어</th>
+                <th>변경 전 Ship Name</th>
+                <th>변경 후 Ship Name</th>
+                <th>변경 전 IMO No.</th>
+                <th>변경 후 IMO No.</th>
+                <th>변경 전 Hull No.</th>
+                <th>변경 후 Hull No.</th>
+                <th>변경 전 지역</th>
+                <th>변경 후 지역</th>
+                <th>담당자</th>
+              </tr>
+            </thead>
+            <tbody id="adminHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+<!-- 관리자 페이지: 접속 현황 판 -->
+<div id="adminAccessHistoryPane" class="admin-pane">
+  <h4>접속 현황</h4>
   
-  /* 테이블 컨테이너 스타일 */
-  .resizable-table-container {
-    overflow-x: auto;
-    width: 100%;
-  }
+  <!-- 기간 설정 필터 추가 -->
+  <div style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
+    <label>조회 시작일</label>
+    <input type="date" id="accessHistoryStartDate">
+    <label>조회 종료일</label>
+    <input type="date" id="accessHistoryEndDate">
+    <button onclick="drawAccessHistory()">조회</button>
+  </div>
   
-  /* 전체 테이블 스타일 */
-  #editableScheduleTable {
-    table-layout: auto !important; /* 중요: 자동 레이아웃으로 설정 */
-    width: auto !important; /* 중요: 자동 너비로 설정 */
-  }
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>사용자</th>
+        <th>이메일</th>
+        <th>권한</th>
+        <th>업체</th>
+        <th>접속 횟수</th>
+        <th>마지막 접속 시간</th>
+      </tr>
+    </thead>
+    <tbody id="adminAccessHistoryBody"></tbody>
+  </table>
+</div>
+
+
+    </section>
+  </div>
+<footer style="text-align:center; padding:10px; font-size:0.8em; color:#555;">
+  <button onclick="logout()" style="background:#c0392b; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; margin-bottom:8px;">
+    로그아웃
+  </button>
+  <button id="toggleVersionButton" onclick="toggleVersion()" style="background:#2980b9; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; margin-left:10px;">
+    PC 버전
+  </button>
+  <br>
+  서비스 문의 및 개선 사항은 고객지원 서상훈 차장(031-229-1432)에게 문의하세요
+</footer>
+
+
+
+  <!-- 스케줄 등록/수정 모달 -->
+<div id="modal-background" style="display:none;">
+  <div class="modal" id="scheduleModal">
+    <!-- 우측 상단 X 버튼 -->
+    <button class="modal-close" onclick="closeModal()">×</button>
+      <div id="scheduleStatusLabel"></div>
+      <h3>스케줄 등록/수정</h3>
+      <div class="modal-row" id="modalUserRow" style="display:none;">
+        <label>엔지니어(업체)</label>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <select id="modalUserSelect"></select>
+          <button type="button" onclick="addEngineerRow()">+</button>
+        </div>
+      </div>
+      <div id="additionalEngineerRows" style="margin-bottom:8px;"></div>
+<div class="modal-row" id="modalManagerRow" style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">본사 담당자</label>
+    <select id="modalManagerSelect" style="width: 100%; box-sizing: border-box; font-size: 0.8em;"></select>
+  </div>
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">AS NO.</label>
+    <input type="text" id="modalAsNo" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
+</div>
+
+
+
+      <!-- 시작일/종료일을 한 줄에 표시 -->
+<!-- 시작일/종료일 -->
+<!-- 시작일/종료일 (수정 후) -->
+<div class="modal-row" style="display: flex; flex-wrap: nowrap; gap: 10px;">
+  <div class="date-input-container" style="display: flex; width: 100%; gap: 10px; flex-wrap: nowrap;">
+    <div class="date-input-field" style="flex: 1 1 50%; min-width: 0;">
+      <label style="font-size: 0.8em;">시작일</label>
+      <input type="date" id="modalStartDate" onchange="updateEngineerLists()" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+    </div>
+    <div class="date-input-field" style="flex: 1 1 50%; min-width: 0;">
+      <label style="font-size: 0.8em;">종료일</label>
+      <input type="date" id="modalEndDate" onchange="updateEngineerLists()" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+    </div>
+  </div>
+</div>
+
+
+<!-- ETA, ETB, ETD -->
+<!-- 변경 후: three-date-row 클래스를 추가하여 한 줄 배치 -->
+<div class="modal-row three-date-row">
+  <div class="date-input-field">
+    <label>ETA (도착예정)</label>
+    <input type="date" id="modalETA"/>
+  </div>
+  <div class="date-input-field">
+    <label>ETB (접안예정)</label>
+    <input type="date" id="modalETB"/>
+  </div>
+  <div class="date-input-field">
+    <label>ETD (출항예정)</label>
+    <input type="date" id="modalETD"/>
+  </div>
+</div>
+
+
+<div class="modal-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">IMO No.</label>
+    <input type="text" id="modalIMONo" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">SHIPOWNER</label>
+    <input type="text" id="modalShipOwner" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
+</div>
+
+<div class="modal-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">Ship Name</label>
+    <input type="text" id="modalLine" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">Hull No.</label>
+    <input type="text" id="modalHullNo" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
+</div>
+
+<div class="modal-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">국가</label>
+    <input type="text" id="modalCountry" placeholder="국가를 입력하세요..." oninput="filterCountryList()" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">지역</label>
+    <input type="text" id="modalRegion" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
+</div>
+
+<div class="modal-row" id="countryDropdownContainer" style="display: none;">
+  <ul id="countryDropdown" style="list-style: none; margin: 0; padding: 0; border: 1px solid #ccc; max-height: 150px; overflow-y: auto;"></ul>
+</div>
+
+      <div class="modal-row">
+        <label>작업내용</label>
+        <textarea id="modalDetails" style="width:100%; height:60px;"></textarea>
+      </div>
+      <div class="modal-row">
+        <label>전달사항</label>
+        <textarea id="modalMessage" style="width:100%; height:60px;"></textarea>
+      </div>
+      <div class="modal-row" style="display:flex; align-items:center; gap:4px;">
+        <input type="checkbox" id="modalUnavailable"/>
+        <label for="modalUnavailable" style="margin:0;">서비스 불가 일정</label>
+      </div>
+    
+
+      <div class="modal-row">
+        <label>가용 엔지니어(확인 필요)</label>
+        <div id="availableEngineersList" style="border:1px solid #ccc; padding:4px; height:60px; overflow:auto; font-size:0.8em;"></div>
+      </div>
+<div class="modal-row">
+  <label>배정 완료 엔지니어</label>
+  <div id="assignedEngineersList" style="border:1px solid #ccc; padding:4px; height:60px; overflow:auto; font-size:0.8em;"></div>
+</div>
+
+  <!-- '기타 협력사 포함' 체크박스 (본사/관리자만 보임) -->
+<div class="modal-row" id="includeOtherPartnersRow" style="display:flex; align-items:center;">
+  <input type="checkbox" id="includeOtherPartnersCheckbox" style="margin-right:4px;">
+  <!-- label에 display:inline-block 추가 -->
+  <label for="includeOtherPartnersCheckbox" style="margin:0; display:inline-block;">
+    기타 협력사 포함
+  </label>
+</div>
+
+
+
+      <div class="modal-buttons">
+        <div class="primary-buttons">
+          <button id="btnDeleteSchedule" onclick="deleteSchedule()" style="display:none;background:#c0392b;">삭제</button>
+          <button id="btnSaveOnly" onclick="saveScheduleOnly()" style="background:#3498db;">저장</button>
+          <button id="btnCancelSchedule" onclick="cancelSchedule()" style="display:none;background:#9b59b6;">일정 취소</button>
+          <button id="btnSaveSchedule" onclick="saveSchedule()" style="background:#2980b9;">일정 추가</button>
+          <button id="btnFinalizeSchedule" onclick="finalizeSchedule()" style="display:none;background:#27ae60;">최종 확정</button>
+          <button id="btnCompleteService" onclick="completeService()" style="display:none;background:#3498db;">서비스 완료</button>
+
+        </div>
+        <div class="secondary-buttons">
+          <button id="btnSendEmail" onclick="sendEmailNotification()" style="background:#2980b9;">이메일 발송</button>
+          <button id="btnTimeTable" onclick="openTimeTableModal()" style="background:#2980b9;">타임 테이블</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 타임 테이블 모달 -->
+  <div id="timeTableModalBg" style="display:none; position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); z-index:1000;">
+    <div class="modal" id="timeTableModal">
+      <h3>타임 테이블 입력</h3>
+      <div id="timeTableContainer">
+        <table id="timeTable" border="1" style="width:100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th>시간</th>
+              <th>작업 내용</th>
+              <th>삭제</th>
+            </tr>
+          </thead>
+          <tbody id="timeTableBody">
+</tbody>
+        </table>
+      </div>
+      <button onclick="addTimeTableRow()">행 추가</button>
+      <div style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px;">
+        <button onclick="downloadTimeTableExcel()">엑셀 다운로드</button>
+        <button onclick="document.getElementById('timeTableFileInput').click()">엑셀 업로드</button>
+        <input type="file" id="timeTableFileInput" accept=".xlsx,.xls" style="display:none" onchange="uploadTimeTableExcel(event)">
+        <button onclick="saveTimeTable()">저장</button>
+        <button onclick="closeTimeTableModal()">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 유저 수정 모달 (비밀번호 변경 입력란 제거) -->
+  <div id="modalUserEditBg">
+    <div class="modal" id="userEditModal">
+      <h3>유저 수정/삭제</h3>
+      <div class="modal-row">
+        <label>UID</label>
+        <input type="text" id="userEditUid" disabled/>
+      </div>
+      <div class="modal-row">
+        <label>이름</label>
+        <input type="text" id="userEditName"/>
+      </div>
+      <div class="modal-row">
+        <label>이메일(참고용)</label>
+        <input type="email" id="userEditEmail" readonly/>
+      </div>
+      <div class="modal-row">
+        <label>권한</label>
+        <select id="userEditRole">
+          <option value="관리자">관리자</option>
+          <option value="본사">본사</option>
+          <option value="협력">협력</option>
+        </select>
+      </div>
+      <div class="modal-row">
+        <label>업체명</label>
+        <input type="text" id="userEditCompany"/>
+      </div>
+      <!-- 협력 구분 (주요/기타) - 협력 계정일 때만 표시 -->
+      <div class="modal-row" id="userEditSubCategoryRow" style="display:none;">
+        <label>협력 구분</label>
+        <select id="userEditSubCategory">
+          <option value="주요">주요</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="modal-buttons">
+        <button onclick="closeUserEditModal()">취소</button>
+        <button onclick="deleteUserFromModal()" style="background:#c0392b;">삭제</button>
+        <button onclick="applyUserEdit()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SheetJS + Firebase, Excel 기능 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Firebase App, Database, Auth (compat 버전) -->
+  <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-auth-compat.js"></script>
+
+<script src="main.js?v=1.0.5"></script>
+
+</body>
+</html>
