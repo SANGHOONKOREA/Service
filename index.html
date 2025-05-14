@@ -311,7 +311,7 @@
                         <th data-field="managerId" class="resizable">담당자</th>
                         <th data-field="company" class="resizable">업체</th>
                         <th data-field="engineer" class="resizable">엔지니어</th>
-                        <th data-field="poNo" class="resizable">PO NO.</th>
+                        <th data-field="asNo" class="resizable">AS NO.</th>
                         <th data-field="asType" class="resizable">AS 구분</th>
                         <th data-field="startDate" class="resizable">시작일</th>
                         <th data-field="endDate" class="resizable">종료일</th>
@@ -544,14 +544,15 @@
         </div>
       </div>
       <div id="additionalEngineerRows" style="margin-bottom:8px;"></div>
-      <div class="modal-row" id="modalManagerRow">
-        <label>본사 담당자</label>
-        <select id="modalManagerSelect"></select>
-      </div>
-      
-<div class="modal-row">
-  <label>AS NO.</label>
-  <input type="text" id="modalAsNo"/>
+<div class="modal-row" id="modalManagerRow" style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">본사 담당자</label>
+    <select id="modalManagerSelect" style="width: 100%; box-sizing: border-box; font-size: 0.8em;"></select>
+  </div>
+  <div style="flex: 1; min-width: 0;">
+    <label style="font-size: 0.8em;">AS NO.</label>
+    <input type="text" id="modalAsNo" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
 </div>
 
 
@@ -665,10 +666,12 @@
       <div class="modal-buttons">
         <div class="primary-buttons">
           <button id="btnDeleteSchedule" onclick="deleteSchedule()" style="display:none;background:#c0392b;">삭제</button>
+          <button id="btnSaveOnly" onclick="saveScheduleOnly()" style="background:#3498db;">저장</button>
           <button id="btnCancelSchedule" onclick="cancelSchedule()" style="display:none;background:#9b59b6;">일정 취소</button>
           <button id="btnSaveSchedule" onclick="saveSchedule()" style="background:#2980b9;">일정 추가</button>
           <button id="btnFinalizeSchedule" onclick="finalizeSchedule()" style="display:none;background:#27ae60;">최종 확정</button>
           <button id="btnCompleteService" onclick="completeService()" style="display:none;background:#3498db;">서비스 완료</button>
+
         </div>
         <div class="secondary-buttons">
           <button id="btnSendEmail" onclick="sendEmailNotification()" style="background:#2980b9;">이메일 발송</button>
