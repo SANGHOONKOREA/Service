@@ -1130,3 +1130,41 @@ th.resizable::after {
   width: 100% !important;
   box-sizing: border-box !important;
 }
+
+  /* 테이블 헤더 리사이징 스타일 */
+  #editableScheduleTable th {
+    position: relative;
+    overflow: visible; /* 중요: 오버플로우 허용 */
+    resize: horizontal; /* 브라우저 기본 리사이징 활성화 */
+    overflow: auto; /* 브라우저 기본 리사이징과 함께 사용 */
+    min-width: 50px;
+  }
+  
+  /* 사용자 정의 리사이저 스타일 */
+  .column-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10px; /* 더 넓게 하여 클릭하기 쉽게 */
+    height: 100%;
+    cursor: col-resize;
+    z-index: 100;
+    background-color: transparent;
+  }
+  
+  .column-resizer:hover, 
+  .column-resizer.active {
+    background-color: rgba(0, 120, 215, 0.3);
+  }
+  
+  /* 테이블 컨테이너 스타일 */
+  .resizable-table-container {
+    overflow-x: auto;
+    width: 100%;
+  }
+  
+  /* 전체 테이블 스타일 */
+  #editableScheduleTable {
+    table-layout: auto !important; /* 중요: 자동 레이아웃으로 설정 */
+    width: auto !important; /* 중요: 자동 너비로 설정 */
+  }
