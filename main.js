@@ -11,6 +11,7 @@ const firebaseConfig = {
   appId: "1:495391900753:web:b0d708eeca64fafe562470",
   measurementId: "G-J2E22BW61H"
 };
+firebase.database.enableLogging(true);
 firebase.database.INTERNAL.forceLongPolling = true;
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
