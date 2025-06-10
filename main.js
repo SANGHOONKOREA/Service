@@ -15,7 +15,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
 
-/****************************************
+/*****************************************
  2) 전역 변수
 *****************************************/
 let currentUser = null;  
