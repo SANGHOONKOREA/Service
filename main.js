@@ -170,6 +170,21 @@ function logout(){
 function resetPassword(){
   const emailVal = document.getElementById("loginEmail").value.trim();
   if(!emailVal){ alert("비밀번호 변경을 위해 이메일을 입력하세요."); return; }
+  
+  // 먼저 해당 이메일로 등록된 사용자가 있는지 확인
+  let userExists = false;
+  for(const uid in users){
+    if(users[uid].email === emailVal){
+      userExists = true;
+      break;
+    }
+  }
+  
+  if(!userExists){
+    alert("계정이 없습니다. 관리자에게 문의하세요. (서상훈 차장 1432)");
+    return;
+  }
+  
   auth.sendPasswordResetEmail(emailVal)
      .then(() => { alert("비밀번호 변경 이메일이 발송되었습니다. 이메일을 확인하세요."); })
      .catch(err => { alert("비밀번호 변경 이메일 발송 실패: " + err.message); });
