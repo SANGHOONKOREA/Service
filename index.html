@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- 제목 변경 -->
   <title>S&SYS SERVICE MANAGEMENT</title>
-<link rel="stylesheet" href="style.css?v=1.0.7">
+<link rel="stylesheet" href="style.css?v=1.0.5">
   
   <!-- EmailJS SDK (클라이언트 사이드) -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
@@ -367,6 +367,7 @@
           <label>권한</label>
           <select id="adminRegisterRole" onchange="toggleRegisterSubCategory()">
             <option value="관리자">관리자</option>
+            <option value="일정관리자">일정관리자</option>
             <option value="본사">본사</option>
             <option value="협력">협력</option>
           </select>
@@ -549,9 +550,18 @@
     <label style="font-size: 0.8em;">본사 담당자</label>
     <select id="modalManagerSelect" style="width: 100%; box-sizing: border-box; font-size: 0.8em;"></select>
   </div>
-  <div style="flex: 1; min-width: 0;">
+  <div style="flex: 0.5; min-width: 0;">
     <label style="font-size: 0.8em;">AS NO.</label>
     <input type="text" id="modalAsNo" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+  </div>
+  <div style="flex: 0.5; min-width: 0;">
+    <label style="font-size: 0.8em;">AS 구분</label>
+    <select id="modalAsType" style="width: 100%; box-sizing: border-box; font-size: 0.8em;">
+      <option value="">-- 선택 --</option>
+      <option value="유상">유상</option>
+      <option value="무상">무상</option>
+      <option value="위탁">위탁</option>
+    </select>
   </div>
 </div>
 
@@ -729,6 +739,7 @@
         <label>권한</label>
         <select id="userEditRole">
           <option value="관리자">관리자</option>
+          <option value="일정관리자">일정관리자</option>
           <option value="본사">본사</option>
           <option value="협력">협력</option>
         </select>
@@ -760,7 +771,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-auth-compat.js"></script>
 
-<script src="main.js?v=1.0.7"></script>
+<script src="main.js?v=1.0.5"></script>
 
 </body>
 </html>
