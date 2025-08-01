@@ -11,11 +11,13 @@ const firebaseConfig = {
   appId: "1:495391900753:web:b0d708eeca64fafe562470",
   measurementId: "G-J2E22BW61H"
 };
+firebase.database.enableLogging(true);
+firebase.database.INTERNAL.forceLongPolling = true;
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
 
-/****************************************
+/*****************************************
  2) 전역 변수
 *****************************************/
 let currentUser = null;  
@@ -31,10 +33,6 @@ let editingScheduleId = null;
 let timeTableData = [];
 let modifiedCells = {}; // 수정된 셀 추적을 위한 객체
 let fullscreenMode = false; // 전체화면 모드 상태 변수
-
-function isAdminRole(role){
-  return role === "관리자" || role === "일정관리자";
-}
 
 /****************************************
  3) 페이지 로드 시 초기 작업
@@ -102,7 +100,7 @@ auth.onAuthStateChanged(user => {
           currentUser = userData;
           document.getElementById("login-container").style.display = "none";
           document.getElementById("main-menu").style.display = "flex";
-          document.getElementById("btnAdmin").style.display = (isAdminRole(currentUser.role)) ? "inline-block" : "none";
+          document.getElementById("btnAdmin").style.display = (currentUser.role === "관리자") ? "inline-block" : "none";
           // 본사 권한이면 현황 버튼 표시
           document.getElementById("btnStatus").style.display = (currentUser.role === "본사") ? "inline-block" : "none";
           loadAllData().then(() => { 
@@ -172,6 +170,21 @@ function logout(){
 function resetPassword(){
   const emailVal = document.getElementById("loginEmail").value.trim();
   if(!emailVal){ alert("비밀번호 변경을 위해 이메일을 입력하세요."); return; }
+  
+  // 먼저 해당 이메일로 등록된 사용자가 있는지 확인
+  let userExists = false;
+  for(const uid in users){
+    if(users[uid].email === emailVal){
+      userExists = true;
+      break;
+    }
+  }
+  
+  if(!userExists){
+    alert("계정이 없습니다. 관리자에게 문의하세요. (서상훈 차장 1432)");
+    return;
+  }
+  
   auth.sendPasswordResetEmail(emailVal)
      .then(() => { alert("비밀번호 변경 이메일이 발송되었습니다. 이메일을 확인하세요."); })
      .catch(err => { alert("비밀번호 변경 이메일 발송 실패: " + err.message); });
@@ -237,7 +250,7 @@ function showSection(sec){
     // 기본으로 유저 목록 표시
     showStatusPane('user');
   } else if(sec === "admin"){
-    if(isAdminRole(currentUser.role)){
+    if(currentUser.role === "관리자"){
       document.getElementById("adminSection").classList.add("active");
       document.getElementById("btnAdmin").classList.add("active");
       showAdminPane("userList");
@@ -261,7 +274,7 @@ function hideAllSections(){
 *****************************************/
 function canAccessSchedule(sch){
   if(!currentUser) return false;
-  if(isAdminRole(currentUser.role) || currentUser.role === "본사") return true;
+  if(currentUser.role === "관리자" || currentUser.role === "본사") return true;
   const schUser = users[sch.userId];
   return schUser ? (schUser.company === currentUser.company) : false;
 }
@@ -677,31 +690,17 @@ function openModal(scheduleId = null, dateStr = null){
   document.getElementById("modalETB").value = "";
   document.getElementById("modalETD").value = "";
   
-// AS No. 필드 초기화 추가
+  // AS No. 필드 초기화 추가
   document.getElementById("modalAsNo").value = "";
-  // AS 구분 필드 초기화 추가
-  document.getElementById("modalAsType").value = "";
   
   // 국가 필드 초기화 추가
   document.getElementById("modalCountry").value = "";
-  
-  // IMO 입력 필드에 이벤트 리스너 추가
-  const imoInput = document.getElementById("modalIMONo");
-  if (imoInput) {
-    // 기존 이벤트 리스너 제거 (중복 방지)
-    imoInput.removeEventListener('change', handleImoChange);
-    imoInput.removeEventListener('blur', handleImoChange);
-    
-    // 새 이벤트 리스너 추가
-    imoInput.addEventListener('change', handleImoChange);
-    imoInput.addEventListener('blur', handleImoChange);
-  }
 
   // 서비스 불가 체크박스에 이벤트 핸들러 추가
   document.getElementById("modalUnavailable").onchange = toggleManagerField;
 
   // 1) 권한별 엔지니어/담당자/체크박스 표시
-  if (isAdminRole(currentUser.role) || currentUser.role === "본사") {
+  if (currentUser.role === "관리자" || currentUser.role === "본사") {
     // 관리자/본사: 엔지니어 선택 전체, 본사 담당자 전체, "기타 협력사 포함" 체크박스 보이기
     userRow.style.display = "";
     buildEngineerSelectOptions(sel); // 필터 없음
@@ -737,18 +736,9 @@ function openModal(scheduleId = null, dateStr = null){
     }
 
     // 기존 값 채우기
-// 기존 값 채우기
     document.getElementById("modalStartDate").value = sch.startDate;
     document.getElementById("modalEndDate").value   = sch.endDate;
-    const modalImoInput = document.getElementById("modalIMONo");
-    modalImoInput.value = sch.imoNo || "";
-    
-    // IMO 입력 필드에 이벤트 리스너 추가
-    modalImoInput.removeEventListener('change', handleImoChange);
-    modalImoInput.removeEventListener('blur', handleImoChange);
-    modalImoInput.addEventListener('change', handleImoChange);
-    modalImoInput.addEventListener('blur', handleImoChange);
-    
+    document.getElementById("modalIMONo").value     = sch.imoNo || "";
     document.getElementById("modalShipOwner").value = sch.shipOwner || "";
     document.getElementById("modalLine").value      = sch.lineName || "";
     document.getElementById("modalHullNo").value    = sch.hullNo || "";
@@ -762,8 +752,6 @@ function openModal(scheduleId = null, dateStr = null){
     
     // AS No. 값 채우기 추가
     document.getElementById("modalAsNo").value = sch.asNo || "";
-    // AS 구분 값 채우기 추가
-    document.getElementById("modalAsType").value = sch.asType || "";
     
     // 국가 값 채우기 추가
     document.getElementById("modalCountry").value = sch.country || "";
@@ -800,7 +788,7 @@ function openModal(scheduleId = null, dateStr = null){
 
     // 버튼 표시
     btnSave.textContent = "일정 변경";
-    if (isAdminRole(currentUser.role) || currentUser.role === "본사") {
+    if (currentUser.role === "관리자" || currentUser.role === "본사") {
       userRow.style.display = "";
       buildEngineerSelectOptions(sel, sch.userId);
       btnDelete.style.display = "inline-block";
@@ -819,9 +807,9 @@ function openModal(scheduleId = null, dateStr = null){
       // 저장 버튼은 항상 활성화
       btnSave.disabled = false;
       btnSaveOnly.disabled = false;
-      btnCancel.disabled = false;
-      btnFinalize.disabled = false;
-      btnComplete.disabled = false;
+      btnCancel.disabled = true;
+      btnFinalize.disabled = true;
+      btnComplete.disabled = true;
       document.getElementById("btnSendEmail").disabled = false;
     } else {
       btnSave.disabled = false;
@@ -831,20 +819,12 @@ function openModal(scheduleId = null, dateStr = null){
       btnComplete.disabled = false;
       document.getElementById("btnSendEmail").disabled = false;
     }
-} else {
+  } else {
     // 신규 등록 모드
     document.getElementById("modalStartDate").value = dateStr || "";
     document.getElementById("modalEndDate").value   = dateStr || "";
     document.getElementById("scheduleStatusLabel").textContent = "일정 등록 대기";
     document.getElementById("btnSaveSchedule").textContent = "일정 추가";
-    
-    // IMO 입력 필드에 이벤트 리스너 추가
-    const modalImoInput = document.getElementById("modalIMONo");
-    modalImoInput.value = "";
-    modalImoInput.removeEventListener('change', handleImoChange);
-    modalImoInput.removeEventListener('blur', handleImoChange);
-    modalImoInput.addEventListener('change', handleImoChange);
-    modalImoInput.addEventListener('blur', handleImoChange);
     
     // 신규 추가 시에도 저장 버튼 활성화
     btnSave.disabled = false;
@@ -1299,9 +1279,6 @@ function saveSchedule(){
   const workContent = document.getElementById("modalDetails").value.trim();
   const transferMsg = document.getElementById("modalMessage").value.trim();
   const isUnavailable = document.getElementById("modalUnavailable").checked;
-
-  const asNoVal = document.getElementById("modalAsNo").value.trim();
-  const asTypeVal = document.getElementById("modalAsType").value;
   
   // ETA, ETB, ETD 값 가져오기
   const etaVal = document.getElementById("modalETA").value;
@@ -1311,15 +1288,7 @@ function saveSchedule(){
   if(!sDate || !eDate){ alert("시작/종료일을 입력하세요"); return; }
   if(sDate > eDate){ alert("종료일이 시작일보다 빠릅니다."); return; }
   
-  let mainUserId;
-  if(document.getElementById("modalUserRow").style.display !== "none"){
-    mainUserId = document.getElementById("modalUserSelect").value;
-  } else if(editingScheduleId){
-    const idxKeep = schedules.findIndex(x => x.id === editingScheduleId);
-    mainUserId = idxKeep > -1 ? schedules[idxKeep].userId : currentUid;
-  } else {
-    mainUserId = currentUid;
-  }
+  let mainUserId = (document.getElementById("modalUserRow").style.display !== "none") ? document.getElementById("modalUserSelect").value : currentUid;
   const extraContainer = document.getElementById("additionalEngineerRows");
   const extraSelects = extraContainer.querySelectorAll("select");
   
@@ -1345,8 +1314,6 @@ function saveSchedule(){
       schedules[idx].message = transferMsg;
       schedules[idx].unavailable = isUnavailable;
       schedules[idx].managerId = managerId; // 서비스 불가 여부에 따라 결정된 managerId 사용
-      schedules[idx].asNo = asNoVal;
-      schedules[idx].asType = asTypeVal;
       
       // ETA, ETB, ETD 추가
       schedules[idx].eta = etaVal;
@@ -1376,8 +1343,6 @@ function saveSchedule(){
             message: transferMsg,
             unavailable: isUnavailable,
             managerId: managerId, // 서비스 불가 여부에 따라 결정된 managerId 사용
-            asNo: asNoVal,
-            asType: asTypeVal,
             eta: etaVal,
             etb: etbVal,
             etd: etdVal,
@@ -1414,8 +1379,6 @@ function saveSchedule(){
       message: transferMsg,
       unavailable: isUnavailable,
       managerId: managerId, // 서비스 불가 여부에 따라 결정된 managerId 사용
-      asNo: asNoVal,
-      asType: asTypeVal,
       eta: etaVal,
       etb: etbVal,
       etd: etdVal,
@@ -1440,8 +1403,6 @@ function saveSchedule(){
           message: transferMsg,
           unavailable: isUnavailable,
           managerId: managerId, // 서비스 불가 여부에 따라 결정된 managerId 사용
-          asNo: asNoVal,
-          asType: asTypeVal,
           eta: etaVal,
           etb: etbVal,
           etd: etdVal,
@@ -1555,7 +1516,7 @@ function buildManagerSelectOptions(selectEl, selectedValue = null){
   selectEl.innerHTML = "";
   let hasOption = false;
   for(const uid in users){
-    if(users[uid].role === "본사" || isAdminRole(users[uid].role)){
+    if(users[uid].role === "본사" || users[uid].role === "관리자"){
       const opt = document.createElement("option");
       opt.value = uid;
       opt.textContent = users[uid].id || "담당자";
@@ -1983,15 +1944,7 @@ function saveSchedule(){
   if(!sDate || !eDate){ alert("시작/종료일을 입력하세요"); return; }
   if(sDate > eDate){ alert("종료일이 시작일보다 빠릅니다."); return; }
   
-  let mainUserId;
-  if(document.getElementById("modalUserRow").style.display !== "none"){
-    mainUserId = document.getElementById("modalUserSelect").value;
-  } else if(editingScheduleId){
-    const idxKeep = schedules.findIndex(x => x.id === editingScheduleId);
-    mainUserId = idxKeep > -1 ? schedules[idxKeep].userId : currentUid;
-  } else {
-    mainUserId = currentUid;
-  }
+  let mainUserId = (document.getElementById("modalUserRow").style.display !== "none") ? document.getElementById("modalUserSelect").value : currentUid;
   const extraContainer = document.getElementById("additionalEngineerRows");
   const extraSelects = extraContainer.querySelectorAll("select");
   
@@ -2136,23 +2089,8 @@ function downloadExcel() {
     "서비스 불가": "서비스 불가"
   };
 
-  // 조회 기간 필터 적용 (상태 페이지의 기간 필터 활용)
-  let exportSchedules = schedules;
-  const qs = document.getElementById("statusQueryStart");
-  const qe = document.getElementById("statusQueryEnd");
-  if(qs && qe){
-    const startVal = qs.value;
-    const endVal = qe.value;
-    if(startVal || endVal){
-      exportSchedules = schedules.filter(sch =>
-        (!startVal || sch.startDate >= startVal) &&
-        (!endVal || sch.startDate <= endVal)
-      );
-    }
-  }
-
   // exportData 생성 – 헤더를 한글로 지정
-  const exportData = exportSchedules.map(sch => {
+  const exportData = schedules.map(sch => {
     const managerName =
       sch.managerId && users[sch.managerId] ? users[sch.managerId].id : "";
     const engineerName =
@@ -2201,7 +2139,6 @@ function downloadExcel() {
       "지역": sch.regionName || "",
       "국가": sch.country || "",
       "IMO 번호": sch.imoNo || "",
-      "SHIPOWNER": sch.shipOwner || "",
       "HULL 번호": sch.hullNo || "",
       "SHIP NAME": sch.lineName || "",
       "담당자": managerName,
@@ -2229,7 +2166,7 @@ function downloadExcel() {
   // 고정 목록: 상태, 서비스 불가, AS 구분
   const statusList = "일정 등록 대기,일정 등록,일정 변경,일정 취소,일정 확정,서비스 완료,서비스 불가";
   const unavailableList = "네,아니오";
-  const asTypeList = "유상,무상,위탁";
+  const asTypeList = "유상,무상";
 
   // 엔지니어 목록: users 중 협력 계정의 이름 (중복 제거)
   let engineerOptions = [];
@@ -2243,7 +2180,7 @@ function downloadExcel() {
   // 본사 담당자 목록: users 중 본사 또는 관리자 계정의 이름 (중복 제거)
   let managerOptions = [];
   for (const uid in users) {
-    if (users[uid].role === "본사" || isAdminRole(users[uid].role)) {
+    if (users[uid].role === "본사" || users[uid].role === "관리자") {
       managerOptions.push(users[uid].id);
     }
   }
@@ -2330,7 +2267,7 @@ function uploadExcel(event){
       let managerUid = "";
       if (row["담당자"]) {
         for (const uid in users) {
-          if ((users[uid].role === "본사" || isAdminRole(users[uid].role)) && users[uid].id === row["담당자"]) {
+          if ((users[uid].role === "본사" || users[uid].role === "관리자") && users[uid].id === row["담당자"]) {
             managerUid = uid;
             break;
           }
@@ -3250,7 +3187,7 @@ function renderScheduleRows(filtered, tbody) {
     countryCell.appendChild(countryInputContainer);
     tr.appendChild(countryCell);
     
-// 6. IMO 번호
+    // 6. IMO 번호
     const imoCell = document.createElement("td");
     const imoInput = document.createElement("input");
     imoInput.type = "text";
@@ -3262,48 +3199,7 @@ function renderScheduleRows(filtered, tbody) {
     imoInput.style.border = "1px solid #ddd";
     imoInput.style.borderRadius = "4px";
     imoInput.style.backgroundColor = "#fff";
-    imoInput.onchange = async function() { 
-      trackChange(this);
-      
-      // IMO 번호로 AS 데이터베이스에서 선박 정보 조회
-      const imoValue = this.value.trim();
-      if (imoValue) {
-        const shipData = await fetchShipDataFromAsDatabase(imoValue);
-        if (shipData) {
-          console.log('AS 데이터베이스에서 찾은 선박 정보:', shipData);
-          
-          // 같은 행의 선박 정보 필드들 업데이트
-          const currentTr = this.closest('tr');
-          
-          // Ship Name 업데이트
-          const shipNameInput = currentTr.querySelector('[data-field="lineName"]');
-          if (shipNameInput && !shipNameInput.value.trim()) {
-            shipNameInput.value = shipData.shipName;
-            trackChange(shipNameInput);
-          }
-          
-          // Shipowner 업데이트
-          const shipownerSelect = currentTr.querySelector('[data-field="company"]');
-          if (shipownerSelect && shipData.shipowner) {
-            // 드롭다운에서 해당 회사 찾기
-            for (let i = 0; i < shipownerSelect.options.length; i++) {
-              if (shipownerSelect.options[i].value === shipData.shipowner) {
-                shipownerSelect.value = shipData.shipowner;
-                trackChange(shipownerSelect);
-                break;
-              }
-            }
-          }
-          
-          // Hull No. 업데이트
-          const hullInput = currentTr.querySelector('[data-field="hull"]');
-          if (hullInput && !hullInput.value.trim()) {
-            hullInput.value = shipData.hull;
-            trackChange(hullInput);
-          }
-        }
-      }
-    };
+    imoInput.onchange = function() { trackChange(this); };
     imoCell.appendChild(imoInput);
     tr.appendChild(imoCell);
     
@@ -3361,7 +3257,7 @@ function renderScheduleRows(filtered, tbody) {
     managerSelect.appendChild(emptyOption);
     
     for (const uid in users) {
-      if (users[uid].role === "본사" || isAdminRole(users[uid].role)) {
+      if (users[uid].role === "본사" || users[uid].role === "관리자") {
         const option = document.createElement("option");
         option.value = uid;
         option.textContent = users[uid].id || "담당자";
@@ -3550,7 +3446,7 @@ tr.appendChild(asNoCell);
     asTypeSelect.onchange = function() { trackChange(this); };
     
     // AS 구분 옵션 추가
-    const asOptions = ["", "유상", "무상", "위탁"];
+    const asOptions = ["", "유상", "무상"];
     asOptions.forEach(opt => {
       const option = document.createElement("option");
       option.value = opt;
@@ -4484,39 +4380,6 @@ function openUserEditModal(uid) {
   
   document.getElementById("modalUserEditBg").style.display = "block";
 }
-
-function closeUserEditModal(){
-  document.getElementById("modalUserEditBg").style.display = "none";
-}
-
-function applyUserEdit(){
-  const uid = document.getElementById("userEditUid").value;
-  const name = document.getElementById("userEditName").value.trim();
-  const role = document.getElementById("userEditRole").value;
-  const company = document.getElementById("userEditCompany").value.trim();
-  const subCat = document.getElementById("userEditSubCategory").value;
-  const data = {
-    id: name,
-    role: role,
-    company: company,
-    subCategory: role === "협력" ? subCat : ""
-  };
-  db.ref("users/"+uid).update(data).then(()=>{
-    alert("저장되었습니다.");
-    closeUserEditModal();
-    return loadAllData();
-  }).then(drawUserList);
-}
-
-function deleteUserFromModal(){
-  const uid = document.getElementById("userEditUid").value;
-  if(!confirm("삭제하시겠습니까?")) return;
-  db.ref("users/"+uid).remove().then(()=>{
-    alert("삭제되었습니다.");
-    closeUserEditModal();
-    return loadAllData();
-  }).then(drawUserList);
-}
 function populateUserCompanyFilter() {
   const filterSelect = document.getElementById("userCompanyFilter");
   // 기존 선택 값 기억
@@ -4663,7 +4526,7 @@ function showRecipientSelectPopup(message, callback) {
     emptyOpt.textContent = "-- 선택 --";
     select.appendChild(emptyOpt);
     for (let uid in users) {
-      if(users[uid].role === "본사" || isAdminRole(users[uid].role)){
+      if(users[uid].role === "본사" || users[uid].role === "관리자"){
         let opt = document.createElement("option");
         opt.value = uid;
         opt.textContent = users[uid].email + " (" + users[uid].id + ")";
@@ -4918,33 +4781,6 @@ function toggleRegisterSubCategory() {
   } else {
     row.style.display = "none";
   }
-}
-
-function createUser(){
-  const role = document.getElementById("adminRegisterRole").value;
-  const subCat = document.getElementById("adminRegisterSubCategory").value;
-  const name = document.getElementById("adminRegisterName").value.trim();
-  const email = document.getElementById("adminRegisterEmail").value.trim();
-  const pw = document.getElementById("adminRegisterPw").value;
-  const company = document.getElementById("adminRegisterCompany").value.trim();
-  if(!email || !pw){ alert("이메일과 비밀번호를 입력하세요."); return; }
-  fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`,
-    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw,returnSecureToken:true})})
-    .then(res=>res.json())
-    .then(data=>{
-      if(data.error) throw new Error(data.error.message);
-      const uid = data.localId;
-      return db.ref('users/'+uid).set({
-        id:name,
-        email:email,
-        role:role,
-        company:company,
-        subCategory: role === '협력' ? subCat : ''
-      });
-    })
-    .then(()=>{ alert('유저 등록 완료'); return loadAllData(); })
-    .then(drawUserList)
-    .catch(err=>alert('등록 실패: '+err.message));
 }
 
 /****************************************
@@ -5343,7 +5179,7 @@ function populateManagerFilters() {
   
   for (const uid in users) {
     // 본사 또는 관리자 권한을 가진 사용자만 추가
-    if (users[uid].role === "본사" || isAdminRole(users[uid].role)) {
+    if (users[uid].role === "본사" || users[uid].role === "관리자") {
       managers.push({
         uid: uid,
         name: users[uid].id || "(이름 없음)",
@@ -5379,66 +5215,6 @@ function populateManagerFilters() {
     weekFilter.value = weekSelectedValue;
   }
 }
-
-// IMO 번호로 AS 데이터베이스에서 선박 정보 조회 함수
-async function fetchShipDataFromAsDatabase(imoNumber) {
-  try {
-    const snapshot = await db.ref("as-service/data").once('value');
-    const asData = snapshot.val() || {};
-    
-    // IMO 번호로 선박 찾기
-    for (const key in asData) {
-      const ship = asData[key];
-      if (ship.imo && ship.imo.toString().trim() === imoNumber.toString().trim()) {
-        return {
-          shipName: ship.shipName || '',
-          shipowner: ship.shipowner || '',
-          hull: ship.hull || ''
-        };
-      }
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('AS 데이터베이스 조회 오류:', error);
-    return null;
-  }
-}
-
-// IMO 입력 필드 변경 이벤트 핸들러
-async function handleImoChange(e) {
-  const imoValue = e.target.value.trim();
-  
-  if (!imoValue) return;
-  
-  // AS 데이터베이스에서 선박 정보 조회
-  const shipData = await fetchShipDataFromAsDatabase(imoValue);
-  
-  if (shipData) {
-    // 선박명 자동 입력
-    const shipNameInput = document.getElementById("modalLine");
-    if (shipNameInput && !shipNameInput.value.trim()) {
-      shipNameInput.value = shipData.shipName;
-    }
-    
-    // 선주사 자동 입력
-    const shipOwnerInput = document.getElementById("modalShipOwner");
-    if (shipOwnerInput && !shipOwnerInput.value.trim()) {
-      shipOwnerInput.value = shipData.shipowner;
-    }
-    
-    // Hull No. 자동 입력
-    const hullInput = document.getElementById("modalHullNo");
-    if (hullInput && !hullInput.value.trim()) {
-      hullInput.value = shipData.hull;
-    }
-    
-    console.log(`IMO ${imoValue}에 대한 선박 정보 자동 입력 완료:`, shipData);
-  } else {
-    console.log(`IMO ${imoValue}에 대한 선박 정보를 찾을 수 없습니다.`);
-  }
-}
-
 
 /****************************************
  1) 엑셀 시리얼 날짜 변환 함수 (수정됨)
@@ -5667,7 +5443,6 @@ function saveScheduleOnly() {
 
  // AS No. 값 가져오기 추가
   const asNoVal = document.getElementById("modalAsNo").value.trim();
-  const asTypeVal = document.getElementById("modalAsType").value;
   
   // 국가 값 가져오기 추가
   const countryVal = document.getElementById("modalCountry").value.trim();  
@@ -5688,15 +5463,8 @@ function saveScheduleOnly() {
     return; 
   }
   
-  let mainUserId;
-  if(document.getElementById("modalUserRow").style.display !== "none"){
-    mainUserId = document.getElementById("modalUserSelect").value;
-  } else if(editingScheduleId){
-    const idxKeep = schedules.findIndex(x => x.id === editingScheduleId);
-    mainUserId = idxKeep > -1 ? schedules[idxKeep].userId : currentUid;
-  } else {
-    mainUserId = currentUid;
-  }
+  let mainUserId = (document.getElementById("modalUserRow").style.display !== "none") ? 
+    document.getElementById("modalUserSelect").value : currentUid;
   
   const extraContainer = document.getElementById("additionalEngineerRows");
   const extraSelects = extraContainer.querySelectorAll("select");
@@ -5732,8 +5500,6 @@ function saveScheduleOnly() {
     
       // AS No. 저장 추가
       schedules[idx].asNo = asNoVal;
-      // AS 구분 저장 추가
-      schedules[idx].asType = asTypeVal;
       
       // 국가 저장 추가
       schedules[idx].country = countryVal;
@@ -5766,7 +5532,6 @@ function saveScheduleOnly() {
             unavailable: isUnavailable,
             managerId: managerId,
             asNo: asNoVal,      // AS No. 추가
-            asType: asTypeVal,  // AS 구분 추가
             country: countryVal, // 국가 추가
             eta: etaVal,
             etb: etbVal,
@@ -5808,7 +5573,6 @@ function saveScheduleOnly() {
       unavailable: isUnavailable,
       managerId: managerId,
       asNo: asNoVal,       // AS No. 추가
-      asType: asTypeVal,   // AS 구분 추가
       country: countryVal,  // 국가 추가
       eta: etaVal,
       etb: etbVal,
@@ -5837,7 +5601,6 @@ function saveScheduleOnly() {
           unavailable: isUnavailable,
           managerId: managerId,
           asNo: asNoVal,       // AS No. 추가
-          asType: asTypeVal,   // AS 구분 추가
           country: countryVal,  // 국가 추가
           eta: etaVal,
           etb: etbVal,
