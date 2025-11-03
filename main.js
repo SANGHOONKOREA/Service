@@ -4930,11 +4930,19 @@ function createUser(){
   if(!name){ alert("이름을 입력하세요."); return; }
 
   const normalizedEmail = email.toLowerCase();
-  fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseConfig.apiKey}`,
-    {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ email: [normalizedEmail] })
+  if(!auth.currentUser){
+    alert('현재 로그인 정보가 확인되지 않습니다. 다시 로그인 후 시도하세요.');
+    return;
+  }
+
+  auth.currentUser.getIdToken()
+    .then(idToken => {
+      return fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseConfig.apiKey}`,
+        {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ idToken, email: [normalizedEmail] })
+        });
     })
     .then(res => res.json())
     .then(data => {
