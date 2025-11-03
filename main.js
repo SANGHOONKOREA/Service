@@ -4925,21 +4925,37 @@ function createUser(){
   const subCat = document.getElementById("adminRegisterSubCategory").value;
   const name = document.getElementById("adminRegisterName").value.trim();
   const email = document.getElementById("adminRegisterEmail").value.trim();
-  const pw = document.getElementById("adminRegisterPw").value;
   const company = document.getElementById("adminRegisterCompany").value.trim();
-  if(!email || !pw){ alert("이메일과 비밀번호를 입력하세요."); return; }
-  fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`,
-    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw,returnSecureToken:true})})
-    .then(res=>res.json())
-    .then(data=>{
-      if(data.error) throw new Error(data.error.message);
-      const uid = data.localId;
-      return db.ref('users/'+uid).set({
-        id:name,
-        email:email,
-        role:role,
-        company:company,
-        subCategory: role === '협력' ? subCat : ''
+  if(!email){ alert("이메일을 입력하세요."); return; }
+  if(!name){ alert("이름을 입력하세요."); return; }
+
+  const normalizedEmail = email.toLowerCase();
+  fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseConfig.apiKey}`,
+    {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ email: [normalizedEmail] })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if(data.error){
+        throw new Error(data.error.message || 'Firebase 사용자 확인 중 오류가 발생했습니다.');
+      }
+      if(!data.users || data.users.length === 0){
+        throw new Error('Firebase Authentication에 등록되지 않은 이메일입니다.');
+      }
+      const uid = data.users[0].localId;
+      return db.ref('users/'+uid).once('value').then(snap => {
+        if(snap.exists()){
+          throw new Error('이미 등록된 사용자입니다.');
+        }
+        return db.ref('users/'+uid).set({
+          id:name,
+          email:normalizedEmail,
+          role:role,
+          company:company,
+          subCategory: role === '협력' ? subCat : ''
+        });
       });
     })
     .then(()=>{ alert('유저 등록 완료'); return loadAllData(); })
