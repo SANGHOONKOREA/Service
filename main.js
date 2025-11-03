@@ -4956,26 +4956,22 @@ function createUser(){
   }
 
   let existingUsersSnapshot = {};
+  let existingKeyByEmail = null;
   db.ref('users').once('value')
     .then(snap => {
       existingUsersSnapshot = snap.val() || {};
       for (const key in existingUsersSnapshot) {
         const existingEmail = (existingUsersSnapshot[key].email || '').toLowerCase();
         if (existingEmail === normalizedEmail) {
-          throw new Error('이미 등록된 사용자입니다.');
+          existingKeyByEmail = key;
+          break;
         }
-      }
-      return auth.currentUser.getIdToken();
-    })
-    .then(idToken => {
-      if(!idToken){
-        return null;
       }
       return fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseConfig.apiKey}`,
         {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ idToken, email: [normalizedEmail] })
+          body:JSON.stringify({ email: [normalizedEmail] })
         })
         .then(res => res.json())
         .catch(err => {
@@ -4989,12 +4985,8 @@ function createUser(){
         console.warn('Firebase 사용자 확인 응답 오류:', data.error);
       } else if(data && data.users && data.users.length > 0){
         uid = data.users[0].localId;
-        if(existingUsersSnapshot[uid]){
-          throw new Error('이미 등록된 사용자입니다.');
-        }
       }
 
-      const targetRef = uid ? db.ref('users/' + uid) : db.ref('users').push();
       const payload = {
         id: name,
         email: normalizedEmail,
@@ -5002,9 +4994,34 @@ function createUser(){
         company: company,
         subCategory: role === '협력' ? subCat : ''
       };
-      if(!uid){
-        payload.pendingAuth = true;
+
+      if(uid){
+        const existingByUid = existingUsersSnapshot[uid];
+        if(existingByUid){
+          const existingEmail = (existingByUid.email || '').toLowerCase();
+          if(existingEmail === normalizedEmail){
+            throw new Error('이미 등록된 사용자입니다.');
+          }
+          throw new Error('동일 UID가 다른 사용자와 연결되어 있습니다. 관리자에게 문의하세요.');
+        }
+
+        const targetRef = db.ref('users/' + uid);
+        if(existingKeyByEmail && existingKeyByEmail !== uid){
+          return targetRef.set(payload)
+            .then(() => db.ref('users/' + existingKeyByEmail).remove());
+        }
+        if(existingKeyByEmail && existingKeyByEmail === uid){
+          throw new Error('이미 등록된 사용자입니다.');
+        }
+        return targetRef.set(payload);
       }
+
+      if(existingKeyByEmail){
+        throw new Error('이미 등록된 사용자입니다.');
+      }
+
+      const targetRef = db.ref('users').push();
+      payload.pendingAuth = true;
       return targetRef.set(payload);
     })
     .then(()=>{ alert('유저 등록 완료'); return loadAllData(); })
