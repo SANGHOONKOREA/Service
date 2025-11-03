@@ -79,23 +79,43 @@ function toggleVersion() {
 auth.onAuthStateChanged(user => {
   if (user) {
     currentUid = user.uid;
-    
+
     // 접속 기록 저장 로직 추가 (여기에 추가)
     db.ref("accessHistory").push({
       userId: user.uid,
       timestamp: new Date().toISOString(),
       timezone: "Asia/Seoul"
     });
-    
+
+    const normalizedLoginEmail = (user.email || "").toLowerCase();
+
     db.ref("users/" + user.uid).once("value")
       .then(snap => {
-        if (!snap.exists()) {
-          alert("DB에 등록되지 않은 사용자입니다. 관리자에게 문의하세요.");
-          logout();
-          throw new Error("사용자 프로필 없음");
-        } else {
+        if (snap.exists()) {
           return snap.val();
         }
+        return db.ref("users").orderByChild("email").equalTo(normalizedLoginEmail).once("value")
+          .then(matchSnap => {
+            if (!matchSnap.exists()) {
+              alert("DB에 등록되지 않은 사용자입니다. 관리자에게 문의하세요.");
+              logout();
+              throw new Error("사용자 프로필 없음");
+            }
+            const matchValue = matchSnap.val();
+            const matchKey = Object.keys(matchValue)[0];
+            const pendingData = Object.assign({}, matchValue[matchKey] || {});
+            const migratedData = Object.assign({}, pendingData, { email: normalizedLoginEmail });
+            if (migratedData.hasOwnProperty("pendingAuth")) {
+              delete migratedData.pendingAuth;
+            }
+            return db.ref("users/" + user.uid).set(migratedData)
+              .then(() => {
+                if (matchKey !== user.uid) {
+                  return db.ref("users/" + matchKey).remove();
+                }
+              })
+              .then(() => migratedData);
+          });
       })
       .then(userData => {
         if (userData) {
@@ -105,8 +125,8 @@ auth.onAuthStateChanged(user => {
           document.getElementById("btnAdmin").style.display = (isAdminRole(currentUser.role)) ? "inline-block" : "none";
           // 본사 권한이면 현황 버튼 표시
           document.getElementById("btnStatus").style.display = (currentUser.role === "본사") ? "inline-block" : "none";
-          loadAllData().then(() => { 
-            showSection("monthly"); 
+          loadAllData().then(() => {
+            showSection("monthly");
             // 권한에 따라 필터 표시 제어
             updateFilterVisibility();
           });
@@ -4925,22 +4945,84 @@ function createUser(){
   const subCat = document.getElementById("adminRegisterSubCategory").value;
   const name = document.getElementById("adminRegisterName").value.trim();
   const email = document.getElementById("adminRegisterEmail").value.trim();
-  const pw = document.getElementById("adminRegisterPw").value;
   const company = document.getElementById("adminRegisterCompany").value.trim();
-  if(!email || !pw){ alert("이메일과 비밀번호를 입력하세요."); return; }
-  fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`,
-    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw,returnSecureToken:true})})
-    .then(res=>res.json())
-    .then(data=>{
-      if(data.error) throw new Error(data.error.message);
-      const uid = data.localId;
-      return db.ref('users/'+uid).set({
-        id:name,
-        email:email,
-        role:role,
-        company:company,
+  if(!email){ alert("이메일을 입력하세요."); return; }
+  if(!name){ alert("이름을 입력하세요."); return; }
+
+  const normalizedEmail = email.toLowerCase();
+  if(!auth.currentUser){
+    alert('현재 로그인 정보가 확인되지 않습니다. 다시 로그인 후 시도하세요.');
+    return;
+  }
+
+  let existingUsersSnapshot = {};
+  let existingKeyByEmail = null;
+  db.ref('users').once('value')
+    .then(snap => {
+      existingUsersSnapshot = snap.val() || {};
+      for (const key in existingUsersSnapshot) {
+        const existingEmail = (existingUsersSnapshot[key].email || '').toLowerCase();
+        if (existingEmail === normalizedEmail) {
+          existingKeyByEmail = key;
+          break;
+        }
+      }
+      return fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseConfig.apiKey}`,
+        {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ email: [normalizedEmail] })
+        })
+        .then(res => res.json())
+        .catch(err => {
+          console.warn('Firebase Authentication 사용자 조회 중 오류가 발생했습니다.', err);
+          return null;
+        });
+    })
+    .then(data => {
+      let uid = null;
+      if(data && data.error){
+        console.warn('Firebase 사용자 확인 응답 오류:', data.error);
+      } else if(data && data.users && data.users.length > 0){
+        uid = data.users[0].localId;
+      }
+
+      const payload = {
+        id: name,
+        email: normalizedEmail,
+        role: role,
+        company: company,
         subCategory: role === '협력' ? subCat : ''
-      });
+      };
+
+      if(uid){
+        const existingByUid = existingUsersSnapshot[uid];
+        if(existingByUid){
+          const existingEmail = (existingByUid.email || '').toLowerCase();
+          if(existingEmail === normalizedEmail){
+            throw new Error('이미 등록된 사용자입니다.');
+          }
+          throw new Error('동일 UID가 다른 사용자와 연결되어 있습니다. 관리자에게 문의하세요.');
+        }
+
+        const targetRef = db.ref('users/' + uid);
+        if(existingKeyByEmail && existingKeyByEmail !== uid){
+          return targetRef.set(payload)
+            .then(() => db.ref('users/' + existingKeyByEmail).remove());
+        }
+        if(existingKeyByEmail && existingKeyByEmail === uid){
+          throw new Error('이미 등록된 사용자입니다.');
+        }
+        return targetRef.set(payload);
+      }
+
+      if(existingKeyByEmail){
+        throw new Error('이미 등록된 사용자입니다.');
+      }
+
+      const targetRef = db.ref('users').push();
+      payload.pendingAuth = true;
+      return targetRef.set(payload);
     })
     .then(()=>{ alert('유저 등록 완료'); return loadAllData(); })
     .then(drawUserList)
