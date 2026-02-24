@@ -148,21 +148,19 @@ function login(){
   const pwVal = document.getElementById("loginPw").value.trim();
   if(!emailVal || !pwVal){ alert("이메일과 비밀번호를 입력하세요"); return; }
   auth.signInWithEmailAndPassword(emailVal, pwVal)
-    .then((userCredential) => {
-      // 접속 기록 저장
-      const uid = userCredential.user.uid;
-db.ref("accessHistory").push({
-  userId: uid,
-  timestamp: new Date().toISOString(),
-  timezone: "Asia/Seoul" // 타임존 정보 추가
-});
-    })
     .catch(err => { alert("로그인 실패: " + err.message); });
 }
 function logout(){
   if(!confirm("로그아웃 하시겠습니까?")) return;
   auth.signOut();
   currentUser = null; currentUid = null;
+  // 보안: 전역 데이터 초기화
+  users = {};
+  schedules = [];
+  histories = [];
+  companyColors = {};
+  timeTableData = [];
+  modifiedCells = {};
   hideAllSections();
   document.getElementById("loginEmail").value = "";
   document.getElementById("loginPw").value = "";
@@ -227,6 +225,11 @@ function showSection(sec){
     document.getElementById("monthlySection").classList.add("active");
     drawMonthCalendar();
     document.getElementById("btnMonthly").classList.add("active");
+    // S/E 모드였으면 전체폭 복원
+    if(currentMonthViewMode === 'se'){
+      document.body.classList.add('se-fullwidth');
+      drawSEView();
+    }
   } else if(sec === "weekly"){
     document.getElementById("weeklySection").classList.add("active");
     drawWeekCalendar();
@@ -246,6 +249,8 @@ function showSection(sec){
 }
 
 function hideAllSections(){
+  // S/E 전체폭 모드 해제
+  document.body.classList.remove('se-fullwidth');
   document.getElementById("monthlySection").classList.remove("active");
   document.getElementById("weeklySection").classList.remove("active");
   document.getElementById("adminSection").classList.remove("active");
@@ -516,12 +521,14 @@ function drawMonthCalendar(){
 function prevMonth(){
   currentMonthDate.setMonth(currentMonthDate.getMonth() - 1);
   drawMonthCalendar();
+  if(currentMonthViewMode === 'se') drawSEView();
 }
 
 // 다음 달로 이동
 function nextMonth(){
   currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
   drawMonthCalendar();
+  if(currentMonthViewMode === 'se') drawSEView();
 }
 
 /****************************************
@@ -938,8 +945,9 @@ function populateCompanyFilters() {
   // 고유한 업체 집합 수집
   const companies = new Set();
   
-  // users에 있는 모든 업체 수집
+  // users에 있는 모든 업체 수집 (이메일 없는 유저 제외)
   for (const uid in users) {
+    if (!users[uid].id || !users[uid].email) continue;
     const company = users[uid].company;
     if (company && company.trim() !== '') {
       companies.add(company.trim());
@@ -1706,6 +1714,8 @@ function drawAccessHistory() {
     // 각 사용자 정보 및 접속 횟수 표시
     for (const uid in users) {
       if (userAccessCount[uid]) {
+        // 이메일이 없는 유저는 표시하지 않음
+        if (!users[uid].id || !users[uid].email) continue;
         hasRecords = true;
         const user = users[uid];
         const tr = document.createElement("tr");
@@ -2557,6 +2567,8 @@ function drawUserList() {
   // 사용자 배열 생성 및 정렬 (업체명 기준)
   let userArray = [];
   for (const uid in users) {
+    // 이메일이 없는 유저는 목록에서 제외
+    if (!users[uid].id || !users[uid].email) continue;
     userArray.push({ uid: uid, user: users[uid] });
   }
   userArray.sort((a, b) => {
@@ -4528,8 +4540,9 @@ function populateUserCompanyFilter() {
   // 고유한 업체 집합 수집
   const companies = new Set();
   
-  // users에 있는 모든 업체 수집
+  // users에 있는 모든 업체 수집 (이메일 없는 유저 제외)
   for (const uid in users) {
+    if (!users[uid].id || !users[uid].email) continue;
     const company = users[uid].company;
     if (company && company.trim() !== '') {
       companies.add(company.trim());
@@ -4924,25 +4937,48 @@ function createUser(){
   const role = document.getElementById("adminRegisterRole").value;
   const subCat = document.getElementById("adminRegisterSubCategory").value;
   const name = document.getElementById("adminRegisterName").value.trim();
-  const email = document.getElementById("adminRegisterEmail").value.trim();
-  const pw = document.getElementById("adminRegisterPw").value;
+  const email = document.getElementById("adminRegisterEmail").value.trim().toLowerCase();
   const company = document.getElementById("adminRegisterCompany").value.trim();
-  if(!email || !pw){ alert("이메일과 비밀번호를 입력하세요."); return; }
-  fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`,
-    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw,returnSecureToken:true})})
+  if(!email){ alert("이메일을 입력하세요."); return; }
+  if(!name){ alert("이름을 입력하세요."); return; }
+
+  // 이미 DB에 등록된 이메일인지 확인
+  for(const uid in users){
+    if(users[uid].email && users[uid].email.toLowerCase() === email){
+      alert("이미 등록된 이메일입니다: " + email);
+      return;
+    }
+  }
+
+  // Firebase Auth에 등록된 이메일인지 확인 (createAuthUri API)
+  fetch(`https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${firebaseConfig.apiKey}`,
+    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      identifier: email,
+      continueUri: window.location.origin || 'https://snsys.net'
+    })})
     .then(res=>res.json())
     .then(data=>{
       if(data.error) throw new Error(data.error.message);
-      const uid = data.localId;
+      if(!data.registered){
+        throw new Error("Firebase Authentication에 등록되지 않은 이메일입니다.\n먼저 Firebase Console에서 계정을 생성해 주세요.");
+      }
+      // 이메일 기반 키 생성 (Auth UID를 직접 조회할 수 없으므로)
+      const uid = email.replace(/[.@]/g, '_');
       return db.ref('users/'+uid).set({
-        id:name,
-        email:email,
-        role:role,
-        company:company,
+        id: name,
+        email: email,
+        role: role,
+        company: company,
         subCategory: role === '협력' ? subCat : ''
       });
     })
-    .then(()=>{ alert('유저 등록 완료'); return loadAllData(); })
+    .then(()=>{
+      alert('유저 등록 완료');
+      document.getElementById("adminRegisterName").value = "";
+      document.getElementById("adminRegisterEmail").value = "";
+      document.getElementById("adminRegisterCompany").value = "";
+      return loadAllData();
+    })
     .then(drawUserList)
     .catch(err=>alert('등록 실패: '+err.message));
 }
@@ -5000,6 +5036,8 @@ function drawStatusUserList(){
   tbody.innerHTML = "";
   let userArray = [];
   for(const uid in users){
+    // 이메일이 없는 유저는 목록에서 제외
+    if(!users[uid].id || !users[uid].email) continue;
     userArray.push({ uid: uid, user: users[uid] });
   }
   userArray.sort((a,b) => {
@@ -5041,8 +5079,9 @@ function populateStatusUserFilter() {
   // 고유한 업체 집합 수집
   const companies = new Set();
   
-  // users에 있는 모든 업체 수집
+  // users에 있는 모든 업체 수집 (이메일 없는 유저 제외)
   for (const uid in users) {
+    if (!users[uid].id || !users[uid].email) continue;
     const company = users[uid].company;
     if (company && company.trim() !== '') {
       companies.add(company.trim());
@@ -5077,6 +5116,8 @@ function drawUserList() {
   // 사용자 배열 생성 및 정렬 (업체명 기준)
   let userArray = [];
   for (const uid in users) {
+    // 이메일이 없는 유저는 목록에서 제외
+    if (!users[uid].id || !users[uid].email) continue;
     userArray.push({ uid: uid, user: users[uid] });
   }
   userArray.sort((a, b) => {
@@ -5342,7 +5383,8 @@ function populateManagerFilters() {
   const managers = [];
   
   for (const uid in users) {
-    // 본사 또는 관리자 권한을 가진 사용자만 추가
+    // 본사 또는 관리자 권한을 가진 사용자만 추가 (이메일 없는 유저 제외)
+    if (!users[uid].id || !users[uid].email) continue;
     if (users[uid].role === "본사" || isAdminRole(users[uid].role)) {
       managers.push({
         uid: uid,
@@ -5862,3 +5904,273 @@ function saveScheduleOnly() {
     });
   }
 }
+
+/****************************************
+ S/E 뷰 (엔지니어 Gantt 차트)
+*****************************************/
+var currentMonthViewMode = 'calendar'; // 'calendar' or 'se'
+
+function switchMonthView(mode){
+  currentMonthViewMode = mode;
+  const calBtn = document.getElementById('btnViewCalendar');
+  const seBtn = document.getElementById('btnViewSE');
+  const calContainer = document.getElementById('calendarViewContainer');
+  const seContainer = document.getElementById('seViewContainer');
+  
+  if(mode === 'calendar'){
+    calBtn.style.background = '#34495e'; calBtn.style.color = '#fff';
+    seBtn.style.background = '#bdc3c7'; seBtn.style.color = '#333';
+    calContainer.style.display = '';
+    seContainer.style.display = 'none';
+    document.body.classList.remove('se-fullwidth');
+    drawMonthCalendar();
+  } else {
+    calBtn.style.background = '#bdc3c7'; calBtn.style.color = '#333';
+    seBtn.style.background = '#34495e'; seBtn.style.color = '#fff';
+    calContainer.style.display = 'none';
+    seContainer.style.display = '';
+    document.body.classList.add('se-fullwidth');
+    drawSEView();
+  }
+}
+
+function getScheduleColor(sch){
+  const userObj = users[sch.userId] || {};
+  const comp = userObj.company || "기타";
+  let c = "#999";
+  if(companyColors[comp]){
+    if(sch.unavailable) c = companyColors[comp].unavailable || "#ccc";
+    else if(sch.status === "cancelled") c = companyColors[comp].cancel || "#f00";
+    else if(sch.status === "finalized" || sch.status === "일정 변경 / 최종 확정") c = companyColors[comp].final || "#0f0";
+    else if(sch.status === "completed") c = companyColors[comp].completed || "#3498db";
+    else c = companyColors[comp].normal || "#999";
+  }
+  return c;
+}
+
+function drawSEView(){
+  var year = currentMonthDate.getFullYear();
+  var month = currentMonthDate.getMonth();
+  var daysInMonth = new Date(year, month+1, 0).getDate();
+  var today = new Date();
+  var todayStr = formatDate(today.getFullYear(), today.getMonth()+1, today.getDate());
+
+  // 동적 컬럼 폭 계산 - 화면 폭에 맞춤
+  var NAME_W = 180;
+  var containerWidth = window.innerWidth - 20; // 여백
+  var availableWidth = containerWidth - NAME_W;
+  var COL_W = Math.max(40, Math.floor(availableWidth / daysInMonth));
+  var BAR_H = 20;
+  var BAR_GAP = 2;
+  var totalW = daysInMonth * COL_W;
+
+  var selectedCompany = document.getElementById("monthCompanyFilter").value;
+  var selectedManager = document.getElementById("monthManagerFilter").value;
+  var excludeUnavailable = document.getElementById("excludeSchedules").checked;
+
+  var monthStart = formatDate(year, month+1, 1);
+  var monthEnd = formatDate(year, month+1, daysInMonth);
+
+  var filtered = schedules.filter(function(sch){
+    if(!canAccessSchedule(sch)) return false;
+    if(excludeUnavailable && (sch.unavailable || sch.status === "cancelled")) return false;
+    if(sch.startDate > monthEnd || sch.endDate < monthStart) return false;
+    if(selectedCompany){
+      var uObj = users[sch.userId] || {};
+      var mObj = users[sch.managerId] || {};
+      if(!(uObj.company === selectedCompany || mObj.company === selectedCompany)) return false;
+    }
+    if(selectedManager && sch.managerId !== selectedManager) return false;
+    return true;
+  });
+
+  // 엔지니어별 그룹핑
+  var engineerMap = {};
+  filtered.forEach(function(sch){
+    var uid = sch.userId;
+    var uObj = users[uid] || {};
+    var key = uid || 'unknown';
+    if(!engineerMap[key]){
+      engineerMap[key] = { name: uObj.id || '미지정', company: uObj.company || '', schedules: [] };
+    }
+    engineerMap[key].schedules.push(sch);
+  });
+
+  // 정렬: 미확정 맨 아래
+  var engineers = Object.keys(engineerMap).sort(function(a,b){
+    var ea = engineerMap[a], eb = engineerMap[b];
+    var aBot = (ea.name.indexOf('미확정') >= 0 || ea.company.indexOf('미확정') >= 0) ? 1 : 0;
+    var bBot = (eb.name.indexOf('미확정') >= 0 || eb.company.indexOf('미확정') >= 0) ? 1 : 0;
+    if(aBot !== bBot) return aBot - bBot;
+    var cmp = (ea.company||'').localeCompare(eb.company||'');
+    if(cmp !== 0) return cmp;
+    return (ea.name||'').localeCompare(eb.name||'');
+  });
+
+  var dayNames = ['일','월','화','수','목','금','토'];
+
+  // 컨테이너
+  var container = document.getElementById('seViewContainer');
+  container.innerHTML = '';
+  container.style.overflowX = (totalW + NAME_W > containerWidth) ? 'auto' : 'hidden';
+
+  // 전체 wrapper
+  var outerWrap = document.createElement('div');
+  outerWrap.style.cssText = 'display:inline-flex; flex-direction:column; min-width:' + (totalW + NAME_W) + 'px;';
+
+  // ═══ 헤더 ═══
+  var headerRow = document.createElement('div');
+  headerRow.style.cssText = 'display:flex; position:sticky; top:0; z-index:10;';
+
+  var nameHead = document.createElement('div');
+  nameHead.textContent = '엔지니어';
+  nameHead.style.cssText = 'width:' + NAME_W + 'px; min-width:' + NAME_W + 'px; padding:6px 8px; background:#2c3e50; color:#fff; font-weight:bold; font-size:12px; text-align:center; position:sticky; left:0; z-index:12; border-right:2px solid #1a252f; box-sizing:border-box; display:flex; align-items:center; justify-content:center;';
+  headerRow.appendChild(nameHead);
+
+  var daysHead = document.createElement('div');
+  daysHead.style.cssText = 'display:flex; flex-shrink:0;';
+  for(var d = 1; d <= daysInMonth; d++){
+    var dow = new Date(year, month, d).getDay();
+    var dateStr = formatDate(year, month+1, d);
+    var dh = document.createElement('div');
+    var hdrBg = '#34495e';
+    var hdrColor = '#fff';
+    if(dow === 0){ hdrBg = '#c0392b'; }
+    else if(dow === 6){ hdrBg = '#2980b9'; }
+    if(dateStr === todayStr){ hdrBg = '#f39c12'; hdrColor = '#fff'; }
+    dh.style.cssText = 'width:' + COL_W + 'px; min-width:' + COL_W + 'px; text-align:center; padding:3px 0; border-right:1px solid rgba(255,255,255,0.15); box-sizing:border-box; background:' + hdrBg + '; color:' + hdrColor + ';';
+    dh.innerHTML = '<div style="font-size:12px; font-weight:bold;">' + d + '</div><div style="font-size:10px; opacity:0.85;">' + dayNames[dow] + '</div>';
+    daysHead.appendChild(dh);
+  }
+  headerRow.appendChild(daysHead);
+  outerWrap.appendChild(headerRow);
+
+  // ═══ 바디 ═══
+  if(engineers.length === 0){
+    var emptyDiv = document.createElement('div');
+    emptyDiv.style.cssText = 'text-align:center; padding:40px; color:#999; font-size:14px;';
+    emptyDiv.textContent = '이번 달 스케줄이 없습니다.';
+    outerWrap.appendChild(emptyDiv);
+    container.appendChild(outerWrap);
+    return;
+  }
+
+  function dateToDayIndex(ds){
+    var parts = ds.split('-');
+    var dt = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    var d1 = new Date(year, month, 1);
+    return Math.round((dt - d1) / 86400000);
+  }
+
+  for(var ei = 0; ei < engineers.length; ei++){
+    var engKey = engineers[ei];
+    var eng = engineerMap[engKey];
+    var schList = eng.schedules.slice().sort(function(a,b){ return a.startDate.localeCompare(b.startDate); });
+
+    // 레인 배치 (겹치는 스케줄)
+    var lanes = [];
+    for(var si = 0; si < schList.length; si++){
+      var sch = schList[si];
+      var cs = sch.startDate < monthStart ? monthStart : sch.startDate;
+      var ce = sch.endDate > monthEnd ? monthEnd : sch.endDate;
+      var placed = false;
+      for(var li = 0; li < lanes.length; li++){
+        if(cs > lanes[li]){
+          lanes[li] = ce;
+          sch._lane = li;
+          placed = true;
+          break;
+        }
+      }
+      if(!placed){
+        sch._lane = lanes.length;
+        lanes.push(ce);
+      }
+    }
+    var rowLanes = lanes.length || 1;
+    var rowH = rowLanes * (BAR_H + BAR_GAP) + BAR_GAP * 2 + 2;
+
+    // 행
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex; border-bottom:1px solid #ddd;' + (ei % 2 === 0 ? '' : ' background:#f7f9fb;');
+
+    // 이름 셀
+    var nameCell = document.createElement('div');
+    var nameBg = ei % 2 === 0 ? '#fff' : '#f0f2f5';
+    nameCell.style.cssText = 'width:' + NAME_W + 'px; min-width:' + NAME_W + 'px; height:' + rowH + 'px; padding:4px 8px; position:sticky; left:0; z-index:5; background:' + nameBg + '; border-right:2px solid #ddd; box-sizing:border-box; display:flex; flex-direction:column; justify-content:center;';
+    var nameDiv = document.createElement('div');
+    nameDiv.style.cssText = 'font-weight:bold; font-size:12px; white-space:nowrap;';
+    nameDiv.title = eng.name;
+    nameDiv.textContent = eng.name;
+    var compDiv = document.createElement('div');
+    compDiv.style.cssText = 'font-size:10px; color:#888; white-space:nowrap;';
+    compDiv.textContent = eng.company;
+    nameCell.appendChild(nameDiv);
+    nameCell.appendChild(compDiv);
+    row.appendChild(nameCell);
+
+    // Gantt 영역
+    var ganttArea = document.createElement('div');
+    ganttArea.style.cssText = 'position:relative; width:' + totalW + 'px; min-width:' + totalW + 'px; height:' + rowH + 'px; flex-shrink:0;';
+
+    // 배경 세로줄
+    for(var dd = 1; dd <= daysInMonth; dd++){
+      var ddow = new Date(year, month, dd).getDay();
+      var dds = formatDate(year, month+1, dd);
+      var bgDiv = document.createElement('div');
+      var bgColor = 'transparent';
+      if(ddow === 0) bgColor = 'rgba(192,57,43,0.06)';
+      else if(ddow === 6) bgColor = 'rgba(41,128,185,0.06)';
+      if(dds === todayStr) bgColor = 'rgba(243,156,18,0.12)';
+      bgDiv.style.cssText = 'position:absolute; left:' + ((dd-1)*COL_W) + 'px; top:0; width:' + COL_W + 'px; height:100%; border-right:1px solid ' + (ddow === 0 || ddow === 6 ? '#e8e8e8' : '#f2f2f2') + '; box-sizing:border-box; background:' + bgColor + ';';
+      ganttArea.appendChild(bgDiv);
+    }
+
+    // 스케줄 바
+    for(var si2 = 0; si2 < schList.length; si2++){
+      var s = schList[si2];
+      var cStart = s.startDate < monthStart ? monthStart : s.startDate;
+      var cEnd = s.endDate > monthEnd ? monthEnd : s.endDate;
+      var sIdx = dateToDayIndex(cStart);
+      var eIdx = dateToDayIndex(cEnd);
+      if(sIdx > daysInMonth - 1 || eIdx < 0) continue;
+
+      var leftPx = Math.max(0, sIdx) * COL_W + 1;
+      var widthPx = (eIdx - Math.max(0, sIdx) + 1) * COL_W - 2;
+      var topPx = BAR_GAP + 1 + s._lane * (BAR_H + BAR_GAP);
+      var color = getScheduleColor(s);
+      var label = s.unavailable ? (s.lineName || '(서비스 불가)') : (s.lineName || '(선박 미정)');
+
+      var bar = document.createElement('div');
+      bar.style.cssText = 'position:absolute; left:' + leftPx + 'px; top:' + topPx + 'px; width:' + widthPx + 'px; height:' + BAR_H + 'px; background:' + color + '; color:#fff; font-size:11px; font-weight:600; line-height:' + BAR_H + 'px; padding:0 5px; border-radius:3px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.2); box-sizing:border-box;';
+      bar.textContent = label;
+      bar.title = eng.name + ' (' + eng.company + ')\n' + label + '\n' + s.startDate + ' ~ ' + s.endDate;
+      (function(schId){ bar.onclick = function(e){ e.stopPropagation(); openModal(schId); }; })(s.id);
+      ganttArea.appendChild(bar);
+    }
+
+    row.appendChild(ganttArea);
+    outerWrap.appendChild(row);
+  }
+
+  container.appendChild(outerWrap);
+}
+// refreshCalendar에서 SE뷰일 때도 갱신
+const _origRefreshCalendar = refreshCalendar;
+refreshCalendar = function(){
+  _origRefreshCalendar();
+  if(currentMonthViewMode === 'se' && document.getElementById("monthlySection").classList.contains("active")){
+    drawSEView();
+  }
+};
+
+// 화면 리사이즈 시 S/E 뷰 재렌더링 (컬럼폭 재계산)
+var _seResizeTimer = null;
+window.addEventListener('resize', function(){
+  if(_seResizeTimer) clearTimeout(_seResizeTimer);
+  _seResizeTimer = setTimeout(function(){
+    if(currentMonthViewMode === 'se' && document.getElementById("monthlySection").classList.contains("active")){
+      drawSEView();
+    }
+  }, 200);
+});

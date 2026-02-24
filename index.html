@@ -56,6 +56,10 @@
         <button onclick="prevMonth()">&lt; 이전달</button>
         <span id="monthLabel"></span>
         <button onclick="nextMonth()">다음달 &gt;</button>
+        <div style="display:inline-flex; gap:2px; margin-left:12px; border:1px solid #999; border-radius:4px; overflow:hidden;">
+          <button id="btnViewCalendar" onclick="switchMonthView('calendar')" style="background:#34495e; color:#fff; border:none; padding:4px 12px; cursor:pointer; font-size:0.85em;">달력</button>
+          <button id="btnViewSE" onclick="switchMonthView('se')" style="background:#bdc3c7; color:#333; border:none; padding:4px 12px; cursor:pointer; font-size:0.85em;">S/E</button>
+        </div>
       </div>
 <div id="monthCompanyFilterContainer" style="margin-bottom:8px; display:flex; gap:4px; align-items:center;">
   <div class="filter-field">
@@ -73,6 +77,10 @@
   <div class="filter-field">
     <label for="monthShipFilter">선박:</label>
     <input type="text" id="monthShipFilter" placeholder="선박명 입력..." oninput="filterShipNameDropdown()">
+  </div>
+  <div class="filter-field" style="margin-left:8px;">
+    <input type="checkbox" id="excludeSchedules" onchange="refreshCalendar()" style="vertical-align:middle;">
+    <label for="excludeSchedules" style="font-size:0.85em; vertical-align:middle; cursor:pointer;">불가/취소 제외</label>
   </div>
 </div>
 <div id="shipDropdownContainer" style="display: none;">
@@ -105,6 +113,8 @@
 
 
 
+      <!-- 달력 뷰 (기본) -->
+      <div id="calendarViewContainer">
       <div style="position:relative;">
         <table class="month-table">
           <thead>
@@ -122,10 +132,10 @@
         </table>
         <div id="monthOverlay"></div>
       </div>
-      <div style="text-align:right; padding:4px;">
-        <input type="checkbox" id="excludeSchedules" onchange="refreshCalendar()">
-        <label for="excludeSchedules">서비스 불가/취소 일정 제외</label>
       </div>
+
+      <!-- S/E 뷰 (엔지니어 Gantt) -->
+      <div id="seViewContainer" style="display:none; overflow-x:auto; overflow-y:auto; max-height:85vh;"></div>
     </section>
 
 
@@ -388,10 +398,7 @@
           <label>이메일</label>
           <input type="email" id="adminRegisterEmail" placeholder="예: user@example.com"/>
         </div>
-        <div class="admin-form-row">
-          <label>비밀번호</label>
-          <input type="password" id="adminRegisterPw" placeholder="********"/>
-        </div>
+        <!-- 비밀번호 필드 제거: Firebase Auth에 이미 등록된 이메일만 등록 가능 -->
         <div class="admin-form-row">
           <label>업체명</label>
           <input type="text" id="adminRegisterCompany" placeholder="예: 본사, ○○업체 등"/>

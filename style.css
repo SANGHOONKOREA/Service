@@ -1168,3 +1168,19 @@ th.resizable::after {
     table-layout: auto !important; /* 중요: 자동 레이아웃으로 설정 */
     width: auto !important; /* 중요: 자동 너비로 설정 */
   }
+
+/* S/E 뷰 (엔지니어 Gantt 차트) */
+#seViewContainer {
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 8px;
+}
+/* S/E 전체폭 모드 */
+.se-fullwidth #container,
+.se-fullwidth header {
+  max-width: 100% !important;
+}
+.se-fullwidth #container {
+  box-shadow: none;
+}
