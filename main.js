@@ -4997,32 +4997,20 @@ function createUser(){
     });
   }
 
+  // 이메일 기반 키로 DB에 바로 등록 (Auth UID는 첫 로그인 시 자동 마이그레이션됨)
+  // ※ createAuthUri API는 Firebase Email Enumeration Protection 정책으로 인해 비활성화
+  const uid = email.replace(/[.@]/g, '_');
   cleanupPromise.then(() => {
-    // Firebase Auth에 등록된 이메일인지 확인 (createAuthUri API)
-    return fetch(`https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${firebaseConfig.apiKey}`,
-      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        identifier: email,
-        continueUri: window.location.origin || 'https://snsys.net'
-      })});
+    return db.ref('users/'+uid).set({
+      id: name,
+      email: email,
+      role: role,
+      company: company,
+      subCategory: role === '협력' ? subCat : ''
+    });
   })
-    .then(res=>res.json())
-    .then(data=>{
-      if(data.error) throw new Error(data.error.message);
-      if(!data.registered){
-        throw new Error("Firebase Authentication에 등록되지 않은 이메일입니다.\n먼저 Firebase Console에서 계정을 생성해 주세요.");
-      }
-      // 이메일 기반 키 생성 (Auth UID는 첫 로그인 시 자동 마이그레이션됨)
-      const uid = email.replace(/[.@]/g, '_');
-      return db.ref('users/'+uid).set({
-        id: name,
-        email: email,
-        role: role,
-        company: company,
-        subCategory: role === '협력' ? subCat : ''
-      });
-    })
     .then(()=>{
-      alert('유저 등록 완료');
+      alert('유저 등록 완료\n※ Firebase Authentication에도 계정이 등록되어 있어야 로그인이 가능합니다.');
       document.getElementById("adminRegisterName").value = "";
       document.getElementById("adminRegisterEmail").value = "";
       document.getElementById("adminRegisterCompany").value = "";
