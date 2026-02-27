@@ -90,9 +90,34 @@ auth.onAuthStateChanged(user => {
     db.ref("users/" + user.uid).once("value")
       .then(snap => {
         if (!snap.exists()) {
-          alert("DB에 등록되지 않은 사용자입니다. 관리자에게 문의하세요.");
-          logout();
-          throw new Error("사용자 프로필 없음");
+          // Auth UID로 못 찾으면 이메일 기반 키로 검색 (마이그레이션)
+          return db.ref("users").once("value").then(allSnap => {
+            if (!allSnap.exists()) return null;
+            const allUsers = allSnap.val();
+            let foundKey = null;
+            let foundData = null;
+            for (const key in allUsers) {
+              if (allUsers[key].email && allUsers[key].email.toLowerCase() === user.email.toLowerCase()) {
+                foundKey = key;
+                foundData = allUsers[key];
+                break;
+              }
+            }
+            if (foundKey && foundKey !== user.uid) {
+              // 이메일 기반 키 → Auth UID 키로 마이그레이션
+              const updates = {};
+              updates["users/" + user.uid] = foundData;
+              updates["users/" + foundKey] = null; // 이전 키 삭제
+              return db.ref().update(updates).then(() => {
+                console.log("유저 키 마이그레이션 완료:", foundKey, "→", user.uid);
+                return foundData;
+              });
+            }
+            // 이메일로도 못 찾으면 미등록 사용자
+            alert("DB에 등록되지 않은 사용자입니다. 관리자에게 문의하세요.");
+            logout();
+            throw new Error("사용자 프로필 없음");
+          });
         } else {
           return snap.val();
         }
@@ -4942,27 +4967,51 @@ function createUser(){
   if(!email){ alert("이메일을 입력하세요."); return; }
   if(!name){ alert("이름을 입력하세요."); return; }
 
-  // 이미 DB에 등록된 이메일인지 확인
+  // 이미 DB에 등록된 이메일인지 확인 (유령 엔트리 자동 정리 포함)
+  let ghostKeys = [];
+  let activeExists = false;
   for(const uid in users){
     if(users[uid].email && users[uid].email.toLowerCase() === email){
-      alert("이미 등록된 이메일입니다: " + email);
-      return;
+      // 유저 목록에 표시되는 정상 엔트리인지 확인
+      if(users[uid].id && users[uid].email){
+        activeExists = true;
+      }
+      ghostKeys.push(uid);
     }
   }
 
-  // Firebase Auth에 등록된 이메일인지 확인 (createAuthUri API)
-  fetch(`https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${firebaseConfig.apiKey}`,
-    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      identifier: email,
-      continueUri: window.location.origin || 'https://snsys.net'
-    })})
+  if(activeExists){
+    alert("이미 등록된 이메일입니다: " + email);
+    return;
+  }
+
+  // 유령 엔트리가 있으면 자동 정리
+  let cleanupPromise = Promise.resolve();
+  if(ghostKeys.length > 0){
+    const updates = {};
+    ghostKeys.forEach(key => { updates["users/" + key] = null; });
+    cleanupPromise = db.ref().update(updates).then(() => {
+      console.log("유령 엔트리 정리 완료:", ghostKeys);
+      // 로컬 users 객체에서도 제거
+      ghostKeys.forEach(key => { delete users[key]; });
+    });
+  }
+
+  cleanupPromise.then(() => {
+    // Firebase Auth에 등록된 이메일인지 확인 (createAuthUri API)
+    return fetch(`https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${firebaseConfig.apiKey}`,
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        identifier: email,
+        continueUri: window.location.origin || 'https://snsys.net'
+      })});
+  })
     .then(res=>res.json())
     .then(data=>{
       if(data.error) throw new Error(data.error.message);
       if(!data.registered){
         throw new Error("Firebase Authentication에 등록되지 않은 이메일입니다.\n먼저 Firebase Console에서 계정을 생성해 주세요.");
       }
-      // 이메일 기반 키 생성 (Auth UID를 직접 조회할 수 없으므로)
+      // 이메일 기반 키 생성 (Auth UID는 첫 로그인 시 자동 마이그레이션됨)
       const uid = email.replace(/[.@]/g, '_');
       return db.ref('users/'+uid).set({
         id: name,
